@@ -65,7 +65,7 @@ jobs:
 
       - name: Lint
         run: |
-          docker compose -f lint/docker-compose.yml up --build --abort-on-container-exit
+          docker compose -f lint/docker-compose.yaml up --build --abort-on-container-exit
 
   test:
     name: Test

@@ -39,6 +39,7 @@ def pytest_configure(config):
 
         # Wait for server to be ready and discover which endpoints exist
         endpoints_found = []
+        endpoints_404 = []  # Track which endpoints returned 404
         max_retries = 10
         retry_delay = 1.0
 
@@ -60,16 +61,32 @@ def pytest_configure(config):
             # If server is reachable, try specific endpoints
             if server_reachable or retry > 3:  # Give server extra time on early retries
                 for endpoint in ["/mcp", "/sse", "/messages"]:
+                    # Skip this endpoint if we already got 404 for it
+                    if endpoint in endpoints_404:
+                        continue
+
                     try:
-                        response = requests.get(
-                            f"{base_url}{endpoint}",
-                            timeout=2,
-                            allow_redirects=False,
-                        )
-                        # Consider endpoint as existing if we get any response
-                        # Status codes < 500 indicate the server is responding
-                        # Even 404 or 405 might mean the endpoint exists but doesn't accept GET
-                        if response.status_code < 500:
+                        # Use POST for /mcp (JSON-RPC), GET for others
+                        if endpoint == "/mcp":
+                            response = requests.post(
+                                f"{base_url}{endpoint}",
+                                json={},
+                                timeout=2,
+                                allow_redirects=False,
+                            )
+                        else:
+                            response = requests.get(
+                                f"{base_url}{endpoint}",
+                                timeout=2,
+                                allow_redirects=False,
+                            )
+
+                        # Only consider endpoint as existing if we get a response that indicates
+                        # the endpoint exists (not 404). Acceptable codes:
+                        # - 200-299: Success
+                        # - 400-499 except 404: Client error (endpoint exists but request invalid)
+                        # - 405: Method not allowed (endpoint exists, wrong method)
+                        if response.status_code < 500 and response.status_code != 404:
                             if endpoint not in endpoints_found:
                                 endpoints_found.append(endpoint)
                                 print(f"   ✓ Found endpoint: {endpoint} (status: {response.status_code})")
@@ -81,6 +98,11 @@ def pytest_configure(config):
                                 config._mcp_tools_sse = True
                             elif endpoint == "/messages":
                                 config._mcp_tools_http_streaming = True
+                        elif response.status_code == 404:
+                            # Mark this endpoint as 404 so we don't retry it
+                            if endpoint not in endpoints_404:
+                                endpoints_404.append(endpoint)
+                                print(f"   ✗ Endpoint {endpoint} not found (status: 404)")
 
                     except Exception as e:
                         print(f"   ✗ Endpoint {endpoint} not found: {e}")
@@ -89,17 +111,13 @@ def pytest_configure(config):
             if endpoints_found:
                 break
 
+            # If all endpoints returned 404, we're done (no need to retry)
+            if len(endpoints_404) == 3:  # All three endpoints returned 404
+                break
+
             # Wait before retrying
             if retry < max_retries - 1:
                 time.sleep(retry_delay)
-
-        # If no specific endpoints found but server is reachable,
-        # assume it's an MCP server and add a generic marker
-        if not endpoints_found and server_reachable:
-            # Just check if server is alive
-            print("   ℹ️  No specific endpoints found, assuming SSE server")
-            endpoints_found.append("/sse")  # Assume SSE for now
-            config._mcp_tools_sse = True
 
         # Store discovered endpoints
         config._mcp_tools_endpoints = endpoints_found
@@ -107,7 +125,7 @@ def pytest_configure(config):
         if endpoints_found:
             print(f"✅ MCP Tools: Discovered endpoints: {', '.join(endpoints_found)}\n")
         else:
-            print("⚠️  MCP Tools: No endpoints discovered!\n")
+            print("❌ MCP Tools: No endpoints discovered! Server is not a valid MCP server.\n")
 
         # Raise warning if SSE is used (legacy)
         if config._mcp_tools_sse:
@@ -128,8 +146,6 @@ def pytest_collection_modifyitems(session, config, items):
 
     # Get discovered endpoints
     endpoints = getattr(config, "_mcp_tools_endpoints", [])
-    if not endpoints:
-        return
 
     # Create a virtual module to be parent of all MCP tools test items
     module = Module.from_parent(session, path=session.path)
@@ -138,31 +154,54 @@ def pytest_collection_modifyitems(session, config, items):
     # Create a single test that checks if at least one endpoint exists
     test_items = []
 
-    # Format endpoint list for test name
-    endpoint_names = "|".join(endpoints)
-    test_id = f"test_mcp_tools[POST {endpoint_names}]"
+    if not endpoints:
+        # No endpoints found - create a failing test
+        test_id = "test_mcp_tools[NO ENDPOINTS FOUND]"
 
-    def make_test_func(url, eps):
-        def test_func():
-            # Test passes if at least one endpoint was discovered
-            if not eps:
+        def make_failing_test(url):
+            def test_func():
                 pytest.fail(
                     f"No MCP endpoints found at {url}. Expected at least one of: /mcp, /sse, /messages"
                 )
+            return test_func
 
-        return test_func
+        test_func = make_failing_test(base_url)
+        test_func.__name__ = test_id
 
-    test_func = make_test_func(base_url, endpoints)
-    test_func.__name__ = test_id
+        # Create pytest Function item
+        item = pytest.Function.from_parent(
+            module,
+            name=test_id,
+            callobj=test_func,
+        )
+        item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(item)
+    else:
+        # Format endpoint list for test name
+        endpoint_names = "|".join(endpoints)
+        test_id = f"test_mcp_tools[POST {endpoint_names}]"
 
-    # Create pytest Function item
-    item = pytest.Function.from_parent(
-        module,
-        name=test_id,
-        callobj=test_func,
-    )
-    item.add_marker(pytest.mark.mcp_tools)
-    test_items.append(item)
+        def make_test_func(url, eps):
+            def test_func():
+                # Test passes if at least one endpoint was discovered
+                if not eps:
+                    pytest.fail(
+                        f"No MCP endpoints found at {url}. Expected at least one of: /mcp, /sse, /messages"
+                    )
+
+            return test_func
+
+        test_func = make_test_func(base_url, endpoints)
+        test_func.__name__ = test_id
+
+        # Create pytest Function item
+        item = pytest.Function.from_parent(
+            module,
+            name=test_id,
+            callobj=test_func,
+        )
+        item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)
