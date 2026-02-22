@@ -3,7 +3,7 @@ services:
     build:
       context: ..
       dockerfile: docs-validate/Dockerfile
-    image: <MODULE-NAME>-docs-validate:latest
+    image: pytest-mcp-tools-docs-validate:latest
     working_dir: /workspace
     volumes:
       - ../:/workspace

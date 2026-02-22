@@ -1,66 +1,56 @@
-![Tests & Lint](https://github.com/<ORGANIZATION>/<MODULE-NAME>/actions/workflows/ci.yaml/badge.svg?branch=main)
-![PyPI](https://img.shields.io/pypi/v/<MODULE_NAME>.svg)
-![Downloads](https://static.pepy.tech/badge/<MODULE_NAME>)
-![Monthly Downloads](https://static.pepy.tech/badge/<MODULE_NAME>/month)
+![Tests & Lint](https://github.com/<ORGANIZATION>/pytest-mcp-tools/actions/workflows/ci.yaml/badge.svg?branch=main)
+![PyPI](https://img.shields.io/pypi/v/pytest-mcp-tools.svg)
+![Downloads](https://static.pepy.tech/badge/pytest-mcp-tools)
+![Monthly Downloads](https://static.pepy.tech/badge/pytest-mcp-tools/month)
 ![License](https://img.shields.io/github/license/sinan-ozel/pypi-publish-with-cicd.svg)
-[![Documentation](https://img.shields.io/badge/docs-github--pages-blue)](https://sinan-ozel.github.io/<MODULE-NAME>/)
+[![Documentation](https://img.shields.io/badge/docs-github--pages-blue)](https://sinan-ozel.github.io/pytest-mcp-tools/)
 
 # Introduction
 
 # ✨ Introduction
 
-This repository serves as a polished, production-ready template for creating PyPI modules.
-
-It includes:
-
-- 🧪 **Automated Unit Testing** — Comprehensive test execution via CI.
-- 🧹 **Linting & Code Quality** — Ensures clean, consistent standards.
-- 🔢 **SemVer-Compatible Versioning** — Predictable, automated release management.
-
-Additional features:
-
-- 🛠️ **.devcontainer Environment** — Enables seamless collaboration with zero local setup beyond VS Code and Docker.
-- ▶️ **Ready-Made VS Code Tasks** (`.vscode/tasks.json`) — Developers can run tests instantly, even without installing dependencies.
-
-# Examples
-(https://github.com/sinan-ozel/pytest-repeated)[https://github.com/sinan-ozel/pytest-repeated]
-(https://github.com/sinan-ozel/redis-memory)[https://github.com/sinan-ozel/redis-memory]
-
-# Usage
-
-1. Base a repo on this template.
-
-2. Find all instances of <MODULE_NAME>, <MODULE-NAME> and <ORGANIZATION> in muiiltiple files and replace with your module. (Take care with `_` and `-`, use `-` in docker-compose.yaml, `_` in `pyproject.toml`, and in the shields.
-Python requires module names to use `_`, but the URLs tend to use `-`.
-
-3. Create the folders `src/` and `src/<MODULE_NAME>`. `touch src/<MODULE_NAME>/__init__.py`
-
-3. In `__init__.py`, write `__version__ = "0.1.0"`. This repo uses semantic versioning.
-
-3. Add name and email under author in `pyproject.toml`.
-
-3. Set up PyPI repo with the <MODULE_NAME>. Set up publisher as the github repo that you created in step 1. (See below for more details.) # TODO: Add a link to a good set of instructions.
-
-4. Set up GitHub Pages: Settings -> Pages -> Deploy from a branch: `gh-pages`, `/` (root)
-
-4. Update the readme: Delete the top part, Introduction and Usage, and replace with your content.
-
-## PyPI Setup
-
-1. Clock on your username on PyPI to get a scroll-down menu, then go to "Your Projects" -> "Publishing".
-2. Scroll down. Stay on the GitHub tab.
-3. Enter the <MODULE_NAME> from the repo as ``PyPI Project Name''. (Actually, you can have a different name, but few do that.)
-4. Enter the <ORGANIZATION> from the repo as ``Organization Name''.
-5. Enter the <MODULE_NAME> from the repo as ``Repository Name''. (Actually, you can have a different name, but few do that.)
-6. Workflow name is `ci.yaml` - it's the file in the `.github/workflows/` folder. Just enter the filename, not the full path.
-7. You do not need to enter anything in the environment, keep the default.
-
-This is it. Pro Tip: Make sure that the PyPI project name is available before creating the repo.
-
-
+I created this repository to automatically test my MCP tool servers.
 ```
---- WHEN UPDATING README.md: YOU CAN KEEP EVERYTHING BELOW THIS LINE ---
+pytest --mcp-tools=http://localhost:8000
 ```
+
+Will create some tests, automatically, and you will get an output that looks like this:
+```
+🔍 MCP Tools: Discovering endpoints at http://test-server:8000...
+   Retry 1/10: Checking http://test-server:8000...
+   ✓ Server reachable (status: 404)
+   ✓ Found endpoint: /mcp (status: 406)
+   ✗ Endpoint /sse not found (status: 404)
+   ✗ Endpoint /messages not found (status: 404)
+✅ MCP Tools: Discovered endpoints: /mcp
+
+============================= test session starts ==============================
+platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/python3.11
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pyproject.toml
+plugins: cov-7.0.0, anyio-4.12.1, depends-1.0.1, mock-3.15.1, mcp-tools-0.1.0
+collecting ... collected 3 items
+
+✅ MCP tools test created for discovered endpoints: /mcp
+   📡 HTTP streaming support detected
+
+test_samples/test_sample_math.py::test_sample_addition PASSED            [ 25%]
+test_samples/test_sample_math.py::test_sample_multiplication PASSED      [ 50%]
+.::test_mcp_tools[POST /mcp] PASSED                                      [ 75%]
+test_samples/test_sample_math.py::test_sample_string_operations PASSED   [100%]
+
+============================== 4 passed in 0.03s ===============================
+```
+
+Note the test called `.::test_mcp_tools[POST /mcp] PASSED                                      [ 75%]`.
+This is automatically generated by the plugin, and the plan is to make more of these automatically-generated tests based on descriptions of the tools.
+
+
+# Reporting Issues
+If you tested this on your server, and think that there is an issue, just give me the docker image of your server in the issue, and tell me what you are expecting, what you got.
+
+If you don't have a docker hub image, give me a minimal example. That's all I need.
 
 # 🛠️ Development
 

@@ -3,22 +3,27 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "<MODULE_NAME>"
+name = "pytest-mcp-tools"
 dynamic = ["version"]
 description = ""
 readme = "README.md"
 authors = [
-    { name = "", email = "" },
+    { name = "Sinan Ozel", email = "coding@sinan.slmail.me" },
 ]
 license = { file = "LICENSE" }
 dependencies = [
-    "art>=6.0"
+    "art>=6.0",
+    "requests>=2.31.0",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent"
+    "Operating System :: OS Independent",
+    "Framework :: Pytest",
 ]
+
+[project.entry-points.pytest11]
+pytest_mcp_tools = "pytest_mcp_tools.plugin"
 
 [project.optional-dependencies]
 test = [
@@ -60,7 +65,7 @@ profile = "black"
 line_length = 80
 
 [tool.setuptools.dynamic]
-version = { attr = "<MODULE_NAME>.__version__" }
+version = { attr = "pytest_mcp_tools.__version__" }
 
 [project.urls]
 Homepage = "https://github.com/<ORGANIZATION>/<MODULE-NAME>"

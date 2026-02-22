@@ -1,9 +1,59 @@
 services:
+  basic-server:
+    build:
+      context: servers/basic_server
+      dockerfile: Dockerfile
+    image: basic-server:latest
+    networks:
+      - testnet
+    # do not publish the mock server port to the host; keep it internal
+    # so the `test` service can reach it by service name on the compose network.
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  empty-server:
+    build:
+      context: servers/empty_server
+      dockerfile: Dockerfile
+    image: empty-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
       dockerfile: tests/Dockerfile
-    image: <MODULE-NAME>-test:latest
-    command: pytest
+    image: pytest-mcp-tools-test:latest
+    command: pytest /test_of_tests -v
     working_dir: /app
+    depends_on:
+      basic-server:
+        condition: service_healthy
+      empty-server:
+        condition: service_healthy
+    networks:
+      - testnet
+networks:
+  testnet:
+    driver: bridge
 

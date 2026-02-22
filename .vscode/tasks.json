@@ -18,6 +18,10 @@
       "group": {
         "kind": "test",
         "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
       }
     },
     {
@@ -42,7 +46,7 @@
     {
       "label": "reformat",
       "type": "shell",
-      "command": "docker compose -f reformat/docker-compose.yml up --build --abort-on-container-exit",
+      "command": "docker compose -f reformat/docker-compose.yaml up --build --abort-on-container-exit",
       "problemMatcher": [],
       "presentation": {
         "echo": true,
@@ -55,24 +59,6 @@
       "group": {
         "kind": "build",
         "isDefault": false
-      }
-    },
-    {
-      "label": "validate-docs",
-      "type": "shell",
-      "command": "mkdocs",
-      "args": [
-        "build",
-        "--strict"
-      ],
-      "problemMatcher": [],
-      "group": {
-        "kind": "build",
-        "isDefault": false
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "new"
       }
     },
     {
@@ -97,6 +83,98 @@
         "reveal": "always",
         "panel": "new"
       }
+    },
+    {
+      "label": "inspect-test-server",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f", "${workspaceFolder}/inspector/docker-compose.yaml",
+        "up",
+        "--build"
+      ],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      },
+      "options": {
+        "env": {
+          "TEST_SERVER_NAME": "${input:serverName}"
+        }
+      }
+    },
+    {
+      "label": "test-dockerhub-image",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/run_on_dockerhub_image/docker-compose.yaml --project-directory ${workspaceFolder}/run_on_dockerhub_image up --build --abort-on-container-exit --exit-code-from test"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "visual-integration-check",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f", "${workspaceFolder}/visual-integration-check/docker-compose.yaml",
+        "--project-directory", "${workspaceFolder}/visual-integration-check",
+        "up",
+        "--build",
+        "--abort-on-container-exit",
+        "--exit-code-from", "pytest-runner"
+      ],
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": false
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "options": {
+        "env": {
+          "TEST_SERVER_NAME": "${input:serverName}"
+        }
+      }
+    }
+  ],
+  "inputs": [
+    {
+      "id": "serverName",
+      "type": "pickString",
+      "description": "Select test server to inspect",
+      "options": [
+        "basic_server",
+        "empty_server",
+      ],
+      "default": "basic_server"
+    },
+    {
+      "id": "dockerhubImage",
+      "type": "pickString",
+      "description": "Select Docker Hub image to test",
+      "options": ["sinanozel/spell-card-generator:0.4.1"],
+      "default": "sinanozel/spell-card-generator:0.4.1"
+    },
+    {
+      "id": "pytestArgs",
+      "type": "promptString",
+      "description": "Additional pytest arguments (e.g., -vv)",
+      "default": "-v"
     }
   ]
 }

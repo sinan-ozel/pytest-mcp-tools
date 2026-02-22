@@ -2,8 +2,9 @@ FROM python:3.12-slim
 
 WORKDIR /workspace
 
-# Copy pyproject.toml for dependency installation
+# Copy pyproject.toml and source code for dependency installation
 COPY pyproject.toml /workspace/pyproject.toml
+COPY src/ /workspace/src/
 
 # Install dev dependencies
 RUN pip install --no-cache-dir -e ".[dev]"

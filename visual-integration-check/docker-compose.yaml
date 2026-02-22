@@ -1,0 +1,40 @@
+services:
+  # Test Server with MCP endpoint
+  test-server:
+    build:
+      context: ../tests/servers/${TEST_SERVER_NAME:-basic_server}
+      dockerfile: Dockerfile
+    container_name: integration-test-server
+    networks:
+      - integration-net
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - MCP_TRUSTED_HOSTS=test-server,localhost,127.0.0.1
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    stdin_open: true
+    tty: true
+
+  # Pytest runner with mcp-tools plugin
+  pytest-runner:
+    build:
+      context: ..
+      dockerfile: visual-integration-check/Dockerfile
+    container_name: integration-pytest-runner
+    networks:
+      - integration-net
+    depends_on:
+      test-server:
+        condition: service_healthy
+    environment:
+      - TEST_SERVER_NAME=${TEST_SERVER_NAME:-basic_server}
+    command: pytest --mcp-tools=http://test-server:8000 -v
+
+networks:
+  integration-net:
+    driver: bridge

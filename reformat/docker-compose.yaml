@@ -5,6 +5,6 @@ services:
       dockerfile: reformat/Dockerfile
     container_name: reformat-code
     volumes:
-      - ./<MODULE_NAME>/src:/workspace/src:rw
+      - ./pytest_mcp_tools/src:/workspace/src:rw
     working_dir: /workspace
     network_mode: bridge

@@ -3,9 +3,8 @@ services:
     build:
       context: ${HOST_PROJECT_PATH:-.}/..
       dockerfile: lint/Dockerfile
-    image: <MODULE-NAME>-lint:latest
+    image: pytest-mcp-tools-lint:latest
     working_dir: /workspace
     volumes:
       - ${HOST_PROJECT_PATH:-..}:/workspace
-    command: ./lint/lint_and_format.sh
-
+    command: ./lint/lint.sh
