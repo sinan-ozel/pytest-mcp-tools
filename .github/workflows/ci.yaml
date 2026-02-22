@@ -142,6 +142,19 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Initialize gh-pages branch if needed
+        run: |
+          if ! git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            echo "gh-pages branch does not exist, creating it..."
+            git checkout --orphan gh-pages
+            git reset --hard
+            git commit --allow-empty -m "Initialize gh-pages branch"
+            git push origin gh-pages
+            git checkout main
+          else
+            echo "gh-pages branch already exists"
+          fi
+
       - name: Validate documentation
         id: validate
         env:
@@ -324,19 +337,6 @@ jobs:
           VERSION="${{ needs.publish.outputs.version }}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing docs for version: $VERSION"
-
-      - name: Initialize gh-pages branch if needed
-        run: |
-          if ! git ls-remote --heads origin gh-pages | grep -q gh-pages; then
-            echo "gh-pages branch does not exist, creating it..."
-            git checkout --orphan gh-pages
-            git reset --hard
-            git commit --allow-empty -m "Initialize gh-pages branch"
-            git push origin gh-pages
-            git checkout main
-          else
-            echo "gh-pages branch already exists"
-          fi
 
       - name: Deploy documentation with mike
         run: |
