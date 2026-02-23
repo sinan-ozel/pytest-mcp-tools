@@ -316,7 +316,8 @@ jobs:
           git config user.email github-actions@github.com
 
       - name: Install dependencies
-        run: pip install .[docs]
+        run: |
+          pip install .[docs]
 
       - name: Get version from published release
         id: get_version

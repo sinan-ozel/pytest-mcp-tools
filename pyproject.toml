@@ -45,6 +45,7 @@ docs = [
     "mkdocs>=1.5.0,<2.0.0",   # Pin to MkDocs 1.x for Material compatibility
     "mkdocs-material>=9.0.0", # Material theme for MkDocs
     "mkdocstrings[python]>=0.24.0",  # API documentation from docstrings
+    "mike",
 ]
 
 publish = [

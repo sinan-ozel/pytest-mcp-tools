@@ -5,8 +5,6 @@
 ![License](https://img.shields.io/github/license/sinan-ozel/pypi-publish-with-cicd.svg)
 [![Documentation](https://img.shields.io/badge/docs-github--pages-blue)](https://sinan-ozel.github.io/pytest-mcp-tools/)
 
-# Introduction
-
 # ✨ Introduction
 
 I created this repository to automatically test my MCP tool servers.
