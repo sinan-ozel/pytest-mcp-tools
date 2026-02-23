@@ -1,0 +1,40 @@
+services:
+  # Service that runs the Docker Hub image under test
+  docker-image:
+    image: "${DOCKERHUB_IMAGE}"
+    container_name: docker-image
+    networks:
+      - test-net
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    stdin_open: true
+    tty: true
+    ports:
+      - "8000:8000"
+
+  # Pytest runner that builds from the workspace and runs tests against the image
+  test:
+    build:
+      context: ..
+      dockerfile: test-with-docker-image/Dockerfile
+    container_name: test-runner-for-docker-image
+    networks:
+      - test-net
+    depends_on:
+      docker-image:
+        condition: service_healthy
+    environment:
+      - DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE}
+      - PYTEST_ARGS=${PYTEST_ARGS}
+    command: pytest --mcp-tools=http://docker-image:8000 ${PYTEST_ARGS}
+
+networks:
+  test-net:
+    driver: bridge

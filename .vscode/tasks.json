@@ -106,12 +106,12 @@
       }
     },
     {
-      "label": "test-dockerhub-image",
+      "label": "test-with-docker-image",
       "type": "shell",
       "command": "bash",
       "args": [
         "-c",
-        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/run_on_dockerhub_image/docker-compose.yaml --project-directory ${workspaceFolder}/run_on_dockerhub_image up --build --abort-on-container-exit --exit-code-from test"
+        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-docker-image/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-docker-image up --build --abort-on-container-exit --exit-code-from test"
       ],
       "problemMatcher": [],
       "group": {
@@ -167,8 +167,8 @@
       "id": "dockerhubImage",
       "type": "pickString",
       "description": "Select Docker Hub image to test",
-      "options": ["sinanozel/spell-card-generator:0.4.1"],
-      "default": "sinanozel/spell-card-generator:0.4.1"
+      "options": ["sinanozel/spell-card-generator:0.4.2"],
+      "default": "sinanozel/spell-card-generator:0.4.2"
     },
     {
       "id": "pytestArgs",
