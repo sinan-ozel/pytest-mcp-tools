@@ -189,3 +189,243 @@ def test_empty_server_all_endpoints_404():
     ), f"Expected pytest to fail (exit code != 0) when no endpoints found, got exit code: {result.returncode}"
 
     print("✅ Empty server test shows all endpoints 404, pytest failed as expected", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_list_tools_from_basic_server():
+    """Test that the dynamically generated test_list_tools_from_basic_server passes.
+
+    This test verifies that when --mcp-tools is used with a server that has endpoints,
+    the plugin generates and runs a test_list_tools_from_basic_server test that passes.
+    """
+    print("\n🔍 Testing dynamically generated list_tools test with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_list_tools_from_basic_server was created and ran
+    assert (
+        "test_list_tools_from_basic_server" in output
+    ), f"Expected test_list_tools_from_basic_server in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_list_tools_from_basic_server" in output
+    ), f"Expected test_list_tools_from_basic_server to pass, got:\n{output}"
+
+    print("✅ Dynamically generated list_tools test passed for basic server", flush=True)
+
+
+@pytest.mark.depends(on=["test_empty_server_all_endpoints_404"])
+def test_list_tools_from_empty_server_raises_error():
+    """Test that the dynamically generated test_list_tools_from_empty_server_raises_error passes.
+
+    This test verifies that when --mcp-tools is used with a server that has no endpoints,
+    the plugin generates and runs a test_list_tools_from_empty_server_raises_error test that passes.
+    """
+    print("\n🔍 Testing dynamically generated list_tools error test with empty server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://empty-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_list_tools_from_empty_server_raises_error was created and ran
+    assert (
+        "test_list_tools_from_empty_server_raises_error" in output
+    ), f"Expected test_list_tools_from_empty_server_raises_error in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed (it should pass because it expects an error)
+    assert (
+        "PASSED" in output and "test_list_tools_from_empty_server_raises_error" in output
+    ), f"Expected test_list_tools_from_empty_server_raises_error to pass, got:\n{output}"
+
+    print("✅ Dynamically generated list_tools error test passed for empty server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_sse_server_deprecation_warning():
+    """Test that SSE-based MCP servers show deprecation warning.
+
+    This test verifies that when a server uses the deprecated HTTP/SSE transport:
+    1. The endpoint returns 406 Not Acceptable (SSE requires specific headers)
+    2. The plugin detects this as a deprecated SSE endpoint
+    3. A clear deprecation message is shown
+    4. The test fails with helpful guidance to use stdio instead
+    """
+    print("\n🔍 Testing SSE server deprecation warning...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://sse-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that SSE deprecation warning appears during discovery
+    assert (
+        "uses SSE (deprecated)" in output or "406 Not Acceptable" in output
+    ), f"Expected SSE deprecation warning during discovery, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the final message mentions SSE deprecation
+    assert (
+        "SSE is deprecated" in output or "stdio transport" in output
+    ), f"Expected SSE deprecation message in failure, got:\n{output}"
+
+    # Check that no valid endpoints were found (SSE is not supported)
+    assert (
+        "No MCP endpoints found" in output or "NO ENDPOINTS FOUND" in output
+    ), f"Expected no endpoints found message, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when only SSE endpoints found, got exit code: {result.returncode}"
+
+    print("✅ SSE server correctly shows deprecation warning", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_tools_have_descriptions_passes_with_basic_server():
+    """Test that the test_tools_have_descriptions test passes when tools have descriptions.
+
+    This test verifies that when tools have proper description fields,
+    the dynamically generated test_tools_have_descriptions test passes.
+    """
+    print("\n🔍 Testing tools have descriptions check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_descriptions was created and ran
+    assert (
+        "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions to pass, got:\n{output}"
+
+    print("✅ test_tools_have_descriptions passed for basic server with descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_descriptions_fails_without_descriptions():
+    """Test that the test_tools_have_descriptions test fails when tools lack descriptions.
+
+    This test verifies that when tools are missing description fields,
+    the dynamically generated test_tools_have_descriptions test fails with a clear message.
+    """
+    print("\n🔍 Testing tools have descriptions check with server missing descriptions...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-descriptions-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_descriptions was created and ran
+    assert (
+        "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing description
+    assert (
+        "missing description" in output.lower() or "description field" in output.lower()
+    ), f"Expected failure message about missing description, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when descriptions are missing, got exit code: {result.returncode}"
+
+    print("✅ test_tools_have_descriptions correctly failed for server without descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_created_tests_message():
+    """Test that the 'created X tests' message appears after collection.
+
+    This test verifies that after pytest collects tests with --mcp-tools,
+    it displays a message showing how many tests were created.
+    """
+    print("\n🔍 Testing 'created X tests' message...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that "created X tests" message appears
+    assert (
+        "created 3 tests" in output
+    ), f"Expected 'created 3 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    print("✅ 'created 3 tests' message appears correctly", flush=True)

@@ -1,4 +1,4 @@
-"""Basic MCP test server with streaming tool."""
+"""MCP test server with tools missing description fields."""
 
 import os
 import threading
@@ -11,26 +11,25 @@ from starlette.routing import Route
 async def health(request):
     return JSONResponse({"status": "ok"})
 
-# JSON-RPC endpoint for listing tools
+# JSON-RPC endpoint for listing tools (without descriptions)
 async def list_tools_endpoint(request):
     """Handle plain JSON-RPC tools/list requests for testing."""
     try:
         body = await request.json()
         if body.get("method") == "tools/list":
-            # Return the list of registered tools
+            # Return tools WITHOUT description fields
             tools = [
                 {
-                    "name": "stream_message",
-                    "description": "Stream a given message back to the client.",
+                    "name": "tool_without_description",
                     "inputSchema": {
                         "type": "object",
                         "properties": {
-                            "message": {
+                            "input": {
                                 "type": "string",
-                                "description": "The message to stream back"
+                                "description": "Some input"
                             }
                         },
-                        "required": ["message"]
+                        "required": ["input"]
                     }
                 }
             ]
@@ -41,7 +40,7 @@ async def list_tools_endpoint(request):
             })
     except Exception:
         pass
-    
+
     return JSONResponse(
         {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}},
         status_code=400
