@@ -85,68 +85,63 @@ def pytest_configure(config):
 
         # First, check if the server is reachable at all
         server_reachable = False
-        try:
-            # Try root endpoint first
-            print(f"   Checking {base_url}...")
-            response = requests.get(
-                base_url, timeout=2, allow_redirects=False
-            )
-            if response.status_code < 500:
-                server_reachable = True
-                server_ever_reachable = True
-                print(f"   ✓ Server reachable (status: {response.status_code})")
-        except Exception as e:
-            print(f"   ✗ Server not reachable: {e}")
+        # Try root endpoint first
+        print(f"   Checking {base_url}...")
+        response = requests.get(
+            base_url, timeout=2, allow_redirects=False
+        )
+        if response.status_code < 500:
+            server_reachable = True
+            server_ever_reachable = True
+            print(f"   ✓ Server reachable (status: {response.status_code})")
+        else:
+            print(f"   ✗ Server not reachable at {base_url} (status: {response.status_code})")
 
         # If server is reachable, try specific endpoints
         if server_reachable:
             for endpoint in ["/mcp", "/sse", "/messages"]:
-                try:
-                    # Use POST for /mcp (JSON-RPC), GET for others
+                # Use POST for /mcp (JSON-RPC), GET for others
+                if endpoint == "/mcp":
+                    response = requests.post(
+                        f"{base_url}{endpoint}",
+                        json={},
+                        timeout=2,
+                        allow_redirects=False,
+                    )
+                else:
+                    response = requests.get(
+                        f"{base_url}{endpoint}",
+                        timeout=2,
+                        allow_redirects=False,
+                    )
+
+                # Check for 406 Not Acceptable (SSE-based MCP, deprecated)
+                if response.status_code == 406:
+                    if endpoint not in endpoints_sse_deprecated:
+                        endpoints_sse_deprecated.append(endpoint)
+                        print(f"   ⚠️  Endpoint {endpoint} uses SSE (deprecated): 406 Not Acceptable")
+                # Only consider endpoint as existing if we get a response that indicates
+                # the endpoint exists (not 404/406). Acceptable codes:
+                # - 200-299: Success
+                # - 400-499 except 404/406: Client error (endpoint exists but request invalid)
+                # - 405: Method not allowed (endpoint exists, wrong method)
+                elif response.status_code < 500 and response.status_code not in (404, 406):
+                    if endpoint not in endpoints_found:
+                        endpoints_found.append(endpoint)
+                        print(f"   ✓ Found endpoint: {endpoint} (status: {response.status_code})")
+
+                    # Set internal toggles
                     if endpoint == "/mcp":
-                        response = requests.post(
-                            f"{base_url}{endpoint}",
-                            json={},
-                            timeout=2,
-                            allow_redirects=False,
-                        )
-                    else:
-                        response = requests.get(
-                            f"{base_url}{endpoint}",
-                            timeout=2,
-                            allow_redirects=False,
-                        )
-
-                    # Check for 406 Not Acceptable (SSE-based MCP, deprecated)
-                    if response.status_code == 406:
-                        if endpoint not in endpoints_sse_deprecated:
-                            endpoints_sse_deprecated.append(endpoint)
-                            print(f"   ⚠️  Endpoint {endpoint} uses SSE (deprecated): 406 Not Acceptable")
-                    # Only consider endpoint as existing if we get a response that indicates
-                    # the endpoint exists (not 404/406). Acceptable codes:
-                    # - 200-299: Success
-                    # - 400-499 except 404/406: Client error (endpoint exists but request invalid)
-                    # - 405: Method not allowed (endpoint exists, wrong method)
-                    elif response.status_code < 500 and response.status_code not in (404, 406):
-                        if endpoint not in endpoints_found:
-                            endpoints_found.append(endpoint)
-                            print(f"   ✓ Found endpoint: {endpoint} (status: {response.status_code})")
-
-                        # Set internal toggles
-                        if endpoint == "/mcp":
-                            config._mcp_tools_http_streaming = True
-                        elif endpoint == "/sse":
-                            config._mcp_tools_sse = True
-                        elif endpoint == "/messages":
-                            config._mcp_tools_http_streaming = True
-                    elif response.status_code == 404:
-                        # Mark this endpoint as 404
-                        if endpoint not in endpoints_404:
-                            endpoints_404.append(endpoint)
-                            print(f"   ✗ Endpoint {endpoint} not found (status: 404)")
-
-                except Exception as e:
-                    print(f"   ✗ Endpoint {endpoint} not found: {e}")
+                        config._mcp_tools_http_streaming = True
+                    elif endpoint == "/sse":
+                        config._mcp_tools_sse = True
+                    elif endpoint == "/messages":
+                        config._mcp_tools_http_streaming = True
+                elif response.status_code == 404:
+                    # Mark this endpoint as 404
+                    if endpoint not in endpoints_404:
+                        endpoints_404.append(endpoint)
+                        print(f"   ✗ Endpoint {endpoint} not found (status: 404)")
 
         # Store discovered endpoints and SSE info
         config._mcp_tools_endpoints = endpoints_found
@@ -285,7 +280,7 @@ def pytest_collection_modifyitems(session, config, items):
                     try:
                         tools = list_tools(url, endpoint)
                         break
-                    except Exception as e:
+                    except Exception:
                         if retry < max_retries - 1:
                             time.sleep(1)
                         else:
@@ -310,33 +305,24 @@ def pytest_collection_modifyitems(session, config, items):
         def make_tools_have_descriptions_test(url, endpoint="/mcp"):
             def test_tools_have_descriptions():
                 """Test that all tools have description fields."""
-                max_retries = 10
                 tools = None
-                for retry in range(max_retries):
-                    try:
-                        response = requests.post(
-                            f"{url}{endpoint}",
-                            json={
-                                "jsonrpc": "2.0",
-                                "method": "tools/list",
-                                "id": 1
-                            },
-                            headers={
-                                "Content-Type": "application/json",
-                            },
-                            timeout=5
-                        )
-                        response.raise_for_status()
-                        result = response.json()
+                response = requests.post(
+                    f"{url}{endpoint}",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                    timeout=5
+                )
+                response.raise_for_status()
+                result = response.json()
 
-                        if "result" in result and "tools" in result["result"]:
-                            tools = result["result"]["tools"]
-                            break
-                    except Exception as e:
-                        if retry < max_retries - 1:
-                            time.sleep(1)
-                        else:
-                            raise
+                if "result" in result and "tools" in result["result"]:
+                    tools = result["result"]["tools"]
 
                 assert tools, "Expected non-empty tools list"
 
