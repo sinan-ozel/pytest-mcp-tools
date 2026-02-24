@@ -16,5 +16,5 @@ COPY server.py .
 ENV MCP_ALLOW_HTTP=1
 ENV MCP_TRUSTED_HOSTS=test-server:8000,127.0.0.1:8000,localhost:8000
 
-# Set the entrypoint to run the server with uvicorn
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000"]
+# Set the entrypoint to run the MCP server with HTTP/SSE transport
+CMD ["fastmcp", "run", "server.py", "--transport", "http", "--port", "8000", "--host", "0.0.0.0"]

@@ -1,4 +1,4 @@
-![Tests & Lint](https://github.com/<ORGANIZATION>/pytest-mcp-tools/actions/workflows/ci.yaml/badge.svg?branch=main)
+![Ci/CD Pipeline](https://github.com/sinan-ozel/pytest-mcp-tools/actions/workflows/ci.yaml/badge.svg?branch=main)
 ![PyPI](https://img.shields.io/pypi/v/pytest-mcp-tools.svg)
 ![Downloads](https://static.pepy.tech/badge/pytest-mcp-tools)
 ![Monthly Downloads](https://static.pepy.tech/badge/pytest-mcp-tools/month)

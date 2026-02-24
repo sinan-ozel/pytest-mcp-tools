@@ -39,6 +39,25 @@ services:
       retries: 20
       start_period: 5s
 
+  sse-server:
+    build:
+      context: servers/sse_server
+      dockerfile: Dockerfile
+    image: sse-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -50,6 +69,8 @@ services:
       basic-server:
         condition: service_healthy
       empty-server:
+        condition: service_healthy
+      sse-server:
         condition: service_healthy
     networks:
       - testnet

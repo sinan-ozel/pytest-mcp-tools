@@ -12,8 +12,8 @@ authors = [
 ]
 license = { file = "LICENSE" }
 dependencies = [
-    "art>=6.0",
     "requests>=2.31.0",
+    "mcp>=1.0.0",             # MCP SDK for connecting to MCP servers
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

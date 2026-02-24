@@ -189,3 +189,127 @@ def test_empty_server_all_endpoints_404():
     ), f"Expected pytest to fail (exit code != 0) when no endpoints found, got exit code: {result.returncode}"
 
     print("✅ Empty server test shows all endpoints 404, pytest failed as expected", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_list_tools_from_basic_server():
+    """Test that the dynamically generated test_list_tools_from_basic_server passes.
+
+    This test verifies that when --mcp-tools is used with a server that has endpoints,
+    the plugin generates and runs a test_list_tools_from_basic_server test that passes.
+    """
+    print("\n🔍 Testing dynamically generated list_tools test with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_list_tools_from_basic_server was created and ran
+    assert (
+        "test_list_tools_from_basic_server" in output
+    ), f"Expected test_list_tools_from_basic_server in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_list_tools_from_basic_server" in output
+    ), f"Expected test_list_tools_from_basic_server to pass, got:\n{output}"
+
+    print("✅ Dynamically generated list_tools test passed for basic server", flush=True)
+
+
+@pytest.mark.depends(on=["test_empty_server_all_endpoints_404"])
+def test_list_tools_from_empty_server_raises_error():
+    """Test that the dynamically generated test_list_tools_from_empty_server_raises_error passes.
+
+    This test verifies that when --mcp-tools is used with a server that has no endpoints,
+    the plugin generates and runs a test_list_tools_from_empty_server_raises_error test that passes.
+    """
+    print("\n🔍 Testing dynamically generated list_tools error test with empty server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://empty-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_list_tools_from_empty_server_raises_error was created and ran
+    assert (
+        "test_list_tools_from_empty_server_raises_error" in output
+    ), f"Expected test_list_tools_from_empty_server_raises_error in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed (it should pass because it expects an error)
+    assert (
+        "PASSED" in output and "test_list_tools_from_empty_server_raises_error" in output
+    ), f"Expected test_list_tools_from_empty_server_raises_error to pass, got:\n{output}"
+
+    print("✅ Dynamically generated list_tools error test passed for empty server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_sse_server_deprecation_warning():
+    """Test that SSE-based MCP servers show deprecation warning.
+
+    This test verifies that when a server uses the deprecated HTTP/SSE transport:
+    1. The endpoint returns 406 Not Acceptable (SSE requires specific headers)
+    2. The plugin detects this as a deprecated SSE endpoint
+    3. A clear deprecation message is shown
+    4. The test fails with helpful guidance to use stdio instead
+    """
+    print("\n🔍 Testing SSE server deprecation warning...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://sse-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that SSE deprecation warning appears during discovery
+    assert (
+        "uses SSE (deprecated)" in output or "406 Not Acceptable" in output
+    ), f"Expected SSE deprecation warning during discovery, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the final message mentions SSE deprecation
+    assert (
+        "SSE is deprecated" in output or "stdio transport" in output
+    ), f"Expected SSE deprecation message in failure, got:\n{output}"
+
+    # Check that no valid endpoints were found (SSE is not supported)
+    assert (
+        "No MCP endpoints found" in output or "NO ENDPOINTS FOUND" in output
+    ), f"Expected no endpoints found message, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when only SSE endpoints found, got exit code: {result.returncode}"
+
+    print("✅ SSE server correctly shows deprecation warning", flush=True)
