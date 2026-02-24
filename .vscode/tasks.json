@@ -167,7 +167,11 @@
       "id": "dockerhubImage",
       "type": "pickString",
       "description": "Select Docker Hub image to test",
-      "options": ["sinanozel/spell-card-generator:0.4.2"],
+      "options": [
+        "sinanozel/spell-card-generator:0.4.2",
+        "mcp/paper-search:latest",
+        "mcp/google-flights:latest",
+      ],
       "default": "sinanozel/spell-card-generator:0.4.2"
     },
     {

@@ -305,6 +305,59 @@ def pytest_collection_modifyitems(session, config, items):
         list_tools_item.add_marker(pytest.mark.mcp_tools)
         test_items.append(list_tools_item)
 
+        # Add test_tools_have_descriptions if endpoints were found
+        # This tests that all tools have description fields
+        def make_tools_have_descriptions_test(url, endpoint="/mcp"):
+            def test_tools_have_descriptions():
+                """Test that all tools have description fields."""
+                max_retries = 10
+                tools = None
+                for retry in range(max_retries):
+                    try:
+                        response = requests.post(
+                            f"{url}{endpoint}",
+                            json={
+                                "jsonrpc": "2.0",
+                                "method": "tools/list",
+                                "id": 1
+                            },
+                            headers={
+                                "Content-Type": "application/json",
+                            },
+                            timeout=5
+                        )
+                        response.raise_for_status()
+                        result = response.json()
+
+                        if "result" in result and "tools" in result["result"]:
+                            tools = result["result"]["tools"]
+                            break
+                    except Exception as e:
+                        if retry < max_retries - 1:
+                            time.sleep(1)
+                        else:
+                            raise
+
+                assert tools, "Expected non-empty tools list"
+
+                # Check each tool has a description
+                for tool in tools:
+                    tool_name = tool.get("name", "<unknown>")
+                    assert "description" in tool, f"Tool '{tool_name}' is missing description field"
+                    assert tool["description"], f"Tool '{tool_name}' has empty description"
+            return test_tools_have_descriptions
+
+        tools_desc_test_func = make_tools_have_descriptions_test(base_url)
+        tools_desc_test_func.__name__ = "test_tools_have_descriptions"
+
+        tools_desc_item = pytest.Function.from_parent(
+            module,
+            name="test_tools_have_descriptions",
+            callobj=tools_desc_test_func,
+        )
+        tools_desc_item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(tools_desc_item)
+
     # Add all MCP tools test items to the collection
     items.extend(test_items)
 
@@ -315,11 +368,20 @@ def pytest_collection_finish(session):
 
     # Only print if we added MCP tools tests
     if hasattr(config, "_mcp_tools_endpoints"):
+        # Count MCP tools tests
+        mcp_test_count = sum(
+            1 for item in session.items
+            if item.get_closest_marker("mcp_tools") is not None
+        )
+
+        if mcp_test_count > 0:
+            print(f"\ncreated {mcp_test_count} tests")
+
         endpoints = config._mcp_tools_endpoints
         if endpoints:
             endpoint_list = ", ".join(endpoints)
             print(
-                f"\n✅ MCP tools test created for discovered endpoints: {endpoint_list}"
+                f"✅ MCP tools test created for discovered endpoints: {endpoint_list}"
             )
 
             # Print status of toggles

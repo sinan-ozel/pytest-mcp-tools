@@ -1,1 +1,5 @@
 - [ ] Add stdio support
+- [ ] Check JSON schema descriptions
+- [ ] Check an example (optional with kwarg)
+- [ ] Add tool calls
+- [ ]

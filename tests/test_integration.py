@@ -313,3 +313,119 @@ def test_sse_server_deprecation_warning():
     ), f"Expected pytest to fail when only SSE endpoints found, got exit code: {result.returncode}"
 
     print("✅ SSE server correctly shows deprecation warning", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_tools_have_descriptions_passes_with_basic_server():
+    """Test that the test_tools_have_descriptions test passes when tools have descriptions.
+
+    This test verifies that when tools have proper description fields,
+    the dynamically generated test_tools_have_descriptions test passes.
+    """
+    print("\n🔍 Testing tools have descriptions check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_descriptions was created and ran
+    assert (
+        "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions to pass, got:\n{output}"
+
+    print("✅ test_tools_have_descriptions passed for basic server with descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_descriptions_fails_without_descriptions():
+    """Test that the test_tools_have_descriptions test fails when tools lack descriptions.
+
+    This test verifies that when tools are missing description fields,
+    the dynamically generated test_tools_have_descriptions test fails with a clear message.
+    """
+    print("\n🔍 Testing tools have descriptions check with server missing descriptions...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-descriptions-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_descriptions was created and ran
+    assert (
+        "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tools_have_descriptions" in output
+    ), f"Expected test_tools_have_descriptions to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing description
+    assert (
+        "missing description" in output.lower() or "description field" in output.lower()
+    ), f"Expected failure message about missing description, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when descriptions are missing, got exit code: {result.returncode}"
+
+    print("✅ test_tools_have_descriptions correctly failed for server without descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_created_tests_message():
+    """Test that the 'created X tests' message appears after collection.
+
+    This test verifies that after pytest collects tests with --mcp-tools,
+    it displays a message showing how many tests were created.
+    """
+    print("\n🔍 Testing 'created X tests' message...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that "created X tests" message appears
+    assert (
+        "created 3 tests" in output
+    ), f"Expected 'created 3 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    print("✅ 'created 3 tests' message appears correctly", flush=True)
