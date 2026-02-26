@@ -24,6 +24,22 @@ def validate_tools_have_descriptions(tools):
         assert tool["description"], f"Tool '{tool_name}' has empty description"
 
 
+def validate_tools_have_names(tools):
+    """Validate that all tools have non-empty name fields.
+
+    Args:
+        tools: List of tool objects (dicts)
+
+    Raises:
+        AssertionError: If any tool is missing name or has empty name
+    """
+    assert tools, "Expected non-empty tools list"
+
+    for i, tool in enumerate(tools):
+        assert "name" in tool, f"Tool at index {i} is missing name field"
+        assert tool["name"], f"Tool at index {i} has empty name"
+
+
 def list_tools(base_url, endpoint="/mcp"):
     """List available tools from MCP server.
 
@@ -331,6 +347,45 @@ def pytest_collection_modifyitems(session, config, items):
         )
         tools_desc_item.add_marker(pytest.mark.mcp_tools)
         test_items.append(tools_desc_item)
+
+        # Add test_tools_have_names if endpoints were found
+        # This tests that all tools have name fields
+        def make_tools_have_names_test(url, endpoint="/mcp"):
+            def test_tools_have_names():
+                """Test that all tools have name fields."""
+                response = requests.post(
+                    f"{url}{endpoint}",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                    timeout=5
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if "result" in result and "tools" in result["result"]:
+                    tools = result["result"]["tools"]
+                else:
+                    tools = []
+
+                validate_tools_have_names(tools)
+            return test_tools_have_names
+
+        tools_names_test_func = make_tools_have_names_test(base_url)
+        tools_names_test_func.__name__ = "test_tools_have_names"
+
+        tools_names_item = pytest.Function.from_parent(
+            module,
+            name="test_tools_have_names",
+            callobj=tools_names_test_func,
+        )
+        tools_names_item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(tools_names_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)

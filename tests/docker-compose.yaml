@@ -58,6 +58,25 @@ services:
       retries: 20
       start_period: 5s
 
+  no-names-server:
+    build:
+      context: servers/no_names_server
+      dockerfile: Dockerfile
+    image: no-names-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   hybrid-server:
     build:
       context: servers/hybrid_server
@@ -91,6 +110,8 @@ services:
       empty-server:
         condition: service_healthy
       no-descriptions-server:
+        condition: service_healthy
+      no-names-server:
         condition: service_healthy
       hybrid-server:
         condition: service_healthy

@@ -1,4 +1,4 @@
-- [ ] Add stdio support
+- [ ] Add stdio support - WON'T DO
 - [ ] Check that the tool has `name`.
 - [ ] Check that the `name`s are unique
 - [ ] Check annotation: `title`
