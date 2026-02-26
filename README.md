@@ -8,7 +8,11 @@
 # ✨ Introduction
 
 This is an opinionated tool for testing MCP servers live.
-Currently, you point it at a live HTTP Streaming MCP server, and it checks if it can list the tools and whether they have descriptions.
+
+You point it at a live MCP server with streaming response, and it:
+- Queries HTTP endpoints (/mcp)
+- Lists available tools
+- Validates that tools have descriptions
 
 ```
 pytest --mcp-tools=http://localhost:8000
@@ -29,25 +33,35 @@ platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/p
 cachedir: .pytest_cache
 rootdir: /app
 configfile: pyproject.toml
-plugins: anyio-4.12.1, mcp-tools-0.1.1
+plugins: anyio-4.12.1, mcp-tools-0.1.2
 
 collecting ... collected 0 items
 created 3 tests
 ✅ MCP tools test created for discovered endpoints: /mcp
    📡 HTTP streaming support detected
 
-..::test_mcp_tools[POST /mcp] PASSED                                     [ 33%]
-..::test_list_tools_from_basic_server PASSED                             [ 66%]
-..::test_tools_have_descriptions PASSED                                  [100%]
+..::test_mcp_tools[POST /mcp] PASSED                                     [ 25%]
+..::test_list_tools_from_basic_server PASSED                             [ 50%]
+..::test_tools_have_descriptions PASSED                                  [ 75%]
 
 ============================== 3 passed in 0.02s ===============================
 test-runner-for-docker-image exited with code 0
 ```
 
-Later, it will have support for STDIO MCP servers, a check for limiting token count,
-and calls for tools to see if they work as described.
-I may also add LLM-as-a-Judge checks to see if the descriptions make sense,
-or to generate reasonable calls.
+## Features
+
+### Automated Tests
+The plugin generates tests to verify:
+- At least one transport is available (HTTP or STDIO)
+- Tools can be listed successfully
+- All tools have description fields
+
+Later versions will include:
+- Call the tools, based on annotations.
+- Check the responses from the tools against `outputSchema`
+- Token count limiting checks
+- LLM-as-a-Judge checks to validate description quality
+- oAuth and perhaps CORS, as needed. (This is not strictly necessary, because I am imagining that this is going run as a staging test in an environment where all servers are trusted.)
 
 
 # Reporting Issues

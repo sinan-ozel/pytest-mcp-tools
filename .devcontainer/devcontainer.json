@@ -5,6 +5,11 @@
   ],
   "service": "dev",
   "workspaceFolder": "/workspace",
+  "forwardPorts": [6274, 6277],
+  "portsAttributes": {
+    "6274": { "label": "MCP Inspector UI" },
+    "6277": { "label": "MCP Inspector Proxy" }
+  },
   "containerEnv": {
     "HOST_PROJECT_PATH": "${localWorkspaceFolder}"
   },

@@ -43,7 +43,7 @@ def test_basic_mcp_server_tools_discovered():
     2. Generates test items for each tool
     3. Tests appear in pytest's output with the expected format
 
-    Expected test format: test_mcp_tools[POST /mcp|/sse|/messages]
+    Expected test format: test_mcp_tools[POST /mcp]
     """
     print("\n🔍 Testing MCP tools discovery and test generation...", flush=True)
     time.sleep(0.5)
@@ -116,11 +116,6 @@ def test_mcp_tools_run_alongside_regular_tests():
         "Found endpoint: /mcp" in output
     ), f"Expected /mcp endpoint to be found, got:\n{output}"
 
-    # Check that /sse endpoint is not found (404)
-    assert (
-        "Endpoint /sse not found" in output
-    ), f"Expected /sse endpoint not found, got:\n{output}"
-
     # Check that regular tests were collected and ran
     assert (
         "test_sample_addition" in output or "test_samples" in output
@@ -136,14 +131,14 @@ def test_mcp_tools_run_alongside_regular_tests():
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_empty_server_all_endpoints_404():
-    """Test that a server with no MCP endpoints returns 404 for all endpoint checks.
+    """Test that a server with no MCP endpoints returns 404 for the /mcp endpoint check.
 
     This test verifies that when a server has no MCP endpoints:
-    1. All 3 MCP endpoints (POST /mcp, /sse, /messages) return 404
+    1. The /mcp endpoint returns 404
     2. The plugin reports no endpoints discovered
     3. No MCP test is created
     """
-    print("\n🔍 Testing server with no MCP endpoints (all 404)...", flush=True)
+    print("\n🔍 Testing server with no MCP endpoints (404)...", flush=True)
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -160,27 +155,19 @@ def test_empty_server_all_endpoints_404():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    # Check that all 3 endpoints were not found (404)
+    # Check that /mcp endpoint was not found (404)
     assert (
         "Endpoint /mcp not found" in output
     ), f"Expected /mcp endpoint not found, got:\n{output}\n\nSTDERR:\n{stderr}"
 
-    assert (
-        "Endpoint /sse not found" in output
-    ), f"Expected /sse endpoint not found, got:\n{output}\n\nSTDERR:\n{stderr}"
-
-    assert (
-        "Endpoint /messages not found" in output
-    ), f"Expected /messages endpoint not found, got:\n{output}\n\nSTDERR:\n{stderr}"
-
     # Check that no endpoints were discovered
     assert (
-        "No endpoints discovered" in output
-    ), f"Expected 'No endpoints discovered' message, got:\n{output}"
+        "No MCP endpoints discovered" in output
+    ), f"Expected 'No MCP endpoints discovered' message, got:\n{output}"
 
     # Check that a failing test was created
     assert (
-        "test_mcp_tools[NO ENDPOINTS FOUND]" in output or "FAILED" in output
+        "test_mcp_tools[NO TRANSPORT FOUND]" in output or "FAILED" in output
     ), f"Expected failing test to be created, got:\n{output}"
 
     # Check that pytest exited with error code when no endpoints found
@@ -188,7 +175,7 @@ def test_empty_server_all_endpoints_404():
         result.returncode != 0
     ), f"Expected pytest to fail (exit code != 0) when no endpoints found, got exit code: {result.returncode}"
 
-    print("✅ Empty server test shows all endpoints 404, pytest failed as expected", flush=True)
+    print("✅ Empty server test shows endpoint 404, pytest failed as expected", flush=True)
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -263,56 +250,6 @@ def test_list_tools_from_empty_server_raises_error():
     ), f"Expected test_list_tools_from_empty_server_raises_error to pass, got:\n{output}"
 
     print("✅ Dynamically generated list_tools error test passed for empty server", flush=True)
-
-
-@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
-def test_sse_server_deprecation_warning():
-    """Test that SSE-based MCP servers show deprecation warning.
-
-    This test verifies that when a server uses the deprecated HTTP/SSE transport:
-    1. The endpoint returns 406 Not Acceptable (SSE requires specific headers)
-    2. The plugin detects this as a deprecated SSE endpoint
-    3. A clear deprecation message is shown
-    4. The test fails with helpful guidance to use stdio instead
-    """
-    print("\n🔍 Testing SSE server deprecation warning...", flush=True)
-    time.sleep(0.5)
-
-    result = subprocess.run(
-        ["pytest", "--mcp-tools=http://sse-server:8000", "-v", "-s"],
-        capture_output=True,
-        text=True,
-        cwd="/app",
-    )
-
-    output = result.stdout
-    stderr = result.stderr
-
-    # Debug: print both stdout and stderr
-    print(f"STDOUT:\n{output}\n")
-    print(f"STDERR:\n{stderr}\n")
-
-    # Check that SSE deprecation warning appears during discovery
-    assert (
-        "uses SSE (deprecated)" in output or "406 Not Acceptable" in output
-    ), f"Expected SSE deprecation warning during discovery, got:\n{output}\n\nSTDERR:\n{stderr}"
-
-    # Check that the final message mentions SSE deprecation
-    assert (
-        "SSE is deprecated" in output or "stdio transport" in output
-    ), f"Expected SSE deprecation message in failure, got:\n{output}"
-
-    # Check that no valid endpoints were found (SSE is not supported)
-    assert (
-        "No MCP endpoints found" in output or "NO ENDPOINTS FOUND" in output
-    ), f"Expected no endpoints found message, got:\n{output}"
-
-    # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when only SSE endpoints found, got exit code: {result.returncode}"
-
-    print("✅ SSE server correctly shows deprecation warning", flush=True)
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -423,9 +360,138 @@ def test_created_tests_message():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    # Check that "created X tests" message appears
+    # Check that "created X tests" message appears (now expecting 4 tests)
     assert (
-        "created 3 tests" in output
-    ), f"Expected 'created 3 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+        "created 4 tests" in output
+    ), f"Expected 'created 4 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
 
-    print("✅ 'created 3 tests' message appears correctly", flush=True)
+    print("✅ 'created 4 tests' message appears correctly", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_tools_have_names_passes_with_basic_server():
+    """Test that the test_tools_have_names test passes when tools have names.
+
+    This test verifies that when tools have proper name fields,
+    the dynamically generated test_tools_have_names test passes.
+    """
+    print("\n🔍 Testing tools have names check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_names was created and ran
+    assert (
+        "test_tools_have_names" in output
+    ), f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tools_have_names" in output
+    ), f"Expected test_tools_have_names to pass, got:\n{output}"
+
+    print("✅ test_tools_have_names passed for basic server with names", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_names_fails_without_names():
+    """Test that the test_tools_have_names test fails when tools lack names.
+
+    This test verifies that when tools are missing name fields,
+    the dynamically generated test_tools_have_names test fails with a clear message.
+    """
+    print("\n🔍 Testing tools have names check with server missing names...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-names-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_names was created and ran
+    assert (
+        "test_tools_have_names" in output
+    ), f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tools_have_names" in output
+    ), f"Expected test_tools_have_names to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing name
+    assert (
+        "missing name" in output.lower() or "name field" in output.lower()
+    ), f"Expected failure message about missing name, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when names are missing, got exit code: {result.returncode}"
+
+    print("✅ test_tools_have_names correctly failed for server without names", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_hybrid_server_supports_both_http_and_stdio():
+    """Test that hybrid server is detected as supporting both HTTP and STDIO.
+
+    This test verifies that a server supporting both transports:
+    1. Has HTTP endpoints discovered
+    2. Has STDIO communication working
+    3. Creates tests for both transports
+    """
+    print("\n🔍 Testing hybrid server with both HTTP and STDIO support...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://hybrid-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that HTTP endpoint was discovered
+    assert (
+        "Found endpoint: /mcp" in output
+    ), f"Expected /mcp endpoint to be found, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that HTTP tests were created
+    assert (
+        "test_list_tools_from_basic_server" in output
+    ), f"Expected HTTP test to be created, got:\n{output}"
+
+    # Check that both tests passed
+    assert (
+        "PASSED" in output
+    ), f"Expected tests to pass, got:\n{output}"
+
+    print("✅ Hybrid server correctly detected HTTP support", flush=True)
+

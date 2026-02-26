@@ -1,5 +1,12 @@
-- [ ] Add stdio support
-- [ ] Check JSON schema descriptions
+- [ ] Add stdio support - WON'T DO
+- [x] Check that the tool has `name`.
+- [ ] Check that the `name`s are unique
+- [ ] Check annotation: `title`
+- [ ] Check annotation: expect `readOnlyHint`==`false` if `idempotentHint`
+- [ ] Check annotation: expect `readOnlyHint`==`false` if `destructiveHint`
+- [ ] Check `inputSchema`.
+- [ ] Check that `inputSchema` has examples for all fields/properties
 - [ ] Check an example (optional with kwarg)
-- [ ] Add tool calls
-- [ ]
+- [ ] Add tool calls `--mcp-only-read-only` will limit this to `readOnlyHint`==`true`
+- [ ] Check `outputSchema` after tool calls.
+- [ ] Check that the `descriprion` is meaningful with LLM as Judge methodology.

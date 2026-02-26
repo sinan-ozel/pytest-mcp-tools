@@ -12,9 +12,11 @@ RUN apt-get update \
 # Copy server code
 COPY server.py .
 
-# Disable MCP SSE transport host validation for Docker networking
+# Hybrid server - supports both HTTP and STDIO
+# Default to STDIO mode (for docker run -i testing)
+# docker-compose overrides this to run in HTTP mode for health checks
 ENV MCP_ALLOW_HTTP=1
 ENV MCP_TRUSTED_HOSTS=test-server:8000,127.0.0.1:8000,localhost:8000
 
-# Set the entrypoint to run the MCP server with HTTP/SSE transport
-CMD ["fastmcp", "run", "server.py", "--transport", "http", "--port", "8000", "--host", "0.0.0.0"]
+# Default to STDIO mode - docker-compose will override for HTTP
+CMD ["python", "-u", "server.py"]
