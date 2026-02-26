@@ -58,25 +58,6 @@ services:
       retries: 20
       start_period: 5s
 
-  no-descriptions-server:
-    build:
-      context: servers/no_descriptions_server
-      dockerfile: Dockerfile
-    image: no-descriptions-server:latest
-    networks:
-      - testnet
-    deploy:
-      resources:
-        limits:
-          cpus: '0.1'
-          memory: 128M
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 5s
-      timeout: 2s
-      retries: 20
-      start_period: 5s
-
   test:
     build:
       context: ..
@@ -90,8 +71,6 @@ services:
       empty-server:
         condition: service_healthy
       sse-server:
-        condition: service_healthy
-      no-descriptions-server:
         condition: service_healthy
     networks:
       - testnet
