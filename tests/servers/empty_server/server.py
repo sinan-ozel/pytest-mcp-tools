@@ -1,7 +1,7 @@
 """Empty test server with no MCP endpoints.
 
 This server has no MCP endpoints and should return 404
-for all MCP endpoint requests (/mcp, /sse, /messages).
+for the MCP endpoint request (/mcp).
 It only has a /health endpoint for Docker health checks.
 """
 
