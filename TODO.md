@@ -1,5 +1,5 @@
 - [ ] Add stdio support - WON'T DO
-- [ ] Check that the tool has `name`.
+- [x] Check that the tool has `name`.
 - [ ] Check that the `name`s are unique
 - [ ] Check annotation: `title`
 - [ ] Check annotation: expect `readOnlyHint`==`false` if `idempotentHint`
