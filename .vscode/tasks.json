@@ -111,25 +111,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "docker pull ${input:dockerhubImageHttp} && DOCKERHUB_IMAGE=${input:dockerhubImageHttp} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-http-server/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-http-server up --build --abort-on-container-exit --exit-code-from test"
-      ],
-      "problemMatcher": [],
-      "group": {
-        "kind": "test",
-        "isDefault": false
-      },
-      "presentation": {
-        "reveal": "always",
-        "panel": "shared"
-      }
-    },
-    {
-      "label": "test-with-stdio-server",
-      "type": "shell",
-      "command": "bash",
-      "args": [
-        "-c",
-        "STDIO_SERVER_IMAGE=${input:dockerhubImageSse} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-stdio-server/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-stdio-server up --build --abort-on-container-exit --exit-code-from test"
+        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-http-server/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-http-server up --build --abort-on-container-exit --exit-code-from test"
       ],
       "problemMatcher": [],
       "group": {
@@ -182,23 +164,14 @@
       "default": "basic_server"
     },
     {
-      "id": "dockerhubImageHttp",
+      "id": "dockerhubImage",
       "type": "pickString",
       "description": "Select Docker Hub image to test",
       "options": [
         "sinanozel/spell-card-generator:0.4.2",
+        "formulahendry/mcp-server-code-runner-streamable-http:latest",
       ],
       "default": "sinanozel/spell-card-generator:0.4.2"
-    },
-    {
-      "id": "dockerhubImageSse",
-      "type": "pickString",
-      "description": "Select Docker Hub image to test",
-      "options": [
-        "mcp/paper-search:latest",
-        "mcp/google-flights:latest",
-      ],
-      "default": "mcp/paper-search:latest"
     },
     {
       "id": "pytestArgs",
