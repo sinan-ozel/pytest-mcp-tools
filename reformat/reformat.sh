@@ -11,18 +11,13 @@ echo ""
 echo "=========================================="
 echo "Running docformatter (docstring formatter)..."
 echo "=========================================="
-docformatter \
-  --in-place \
-  --recursive \
-  --wrap-summaries 72 \
-  --wrap-descriptions 72 \
-  src/ || true
+docformatter src/
 
 echo ""
 echo "=========================================="
-echo "Running isort (import sorter)..."
+echo "Running ruff check --fix --select I (import sorter)..."
 echo "=========================================="
-isort src/
+ruff check src/ --fix --select I
 
 echo ""
 echo "=========================================="
