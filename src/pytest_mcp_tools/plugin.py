@@ -40,6 +40,28 @@ def validate_tools_have_names(tools):
         assert tool["name"], f"Tool at index {i} has empty name"
 
 
+def validate_tools_have_unique_names(tools):
+    """Validate that all tools have unique name fields.
+
+    Args:
+        tools: List of tool objects (dicts)
+
+    Raises:
+        AssertionError: If any two tools share the same name
+    """
+    assert tools, "Expected non-empty tools list"
+
+    seen = {}
+    for i, tool in enumerate(tools):
+        name = tool.get("name", f"<unnamed at index {i}>")
+        if name in seen:
+            assert False, (
+                f"Duplicate tool name '{name}' found at indices "
+                f"{seen[name]} and {i}"
+            )
+        seen[name] = i
+
+
 def list_tools(base_url, endpoint="/mcp"):
     """List available tools from MCP server.
 
@@ -386,6 +408,45 @@ def pytest_collection_modifyitems(session, config, items):
         )
         tools_names_item.add_marker(pytest.mark.mcp_tools)
         test_items.append(tools_names_item)
+
+        # Add test_tools_have_unique_names if endpoints were found
+        # This tests that all tools have unique name fields
+        def make_tools_have_unique_names_test(url, endpoint="/mcp"):
+            def test_tools_have_unique_names():
+                """Test that all tools have unique name fields."""
+                response = requests.post(
+                    f"{url}{endpoint}",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                    timeout=5
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if "result" in result and "tools" in result["result"]:
+                    tools = result["result"]["tools"]
+                else:
+                    tools = []
+
+                validate_tools_have_unique_names(tools)
+            return test_tools_have_unique_names
+
+        tools_unique_names_test_func = make_tools_have_unique_names_test(base_url)
+        tools_unique_names_test_func.__name__ = "test_tools_have_unique_names"
+
+        tools_unique_names_item = pytest.Function.from_parent(
+            module,
+            name="test_tools_have_unique_names",
+            callobj=tools_unique_names_test_func,
+        )
+        tools_unique_names_item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(tools_unique_names_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)
