@@ -77,6 +77,25 @@ services:
       retries: 20
       start_period: 5s
 
+  duplicate-names-server:
+    build:
+      context: servers/duplicate_names_server
+      dockerfile: Dockerfile
+    image: duplicate-names-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   hybrid-server:
     build:
       context: servers/hybrid_server
@@ -112,6 +131,8 @@ services:
       no-descriptions-server:
         condition: service_healthy
       no-names-server:
+        condition: service_healthy
+      duplicate-names-server:
         condition: service_healthy
       hybrid-server:
         condition: service_healthy

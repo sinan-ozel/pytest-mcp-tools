@@ -360,12 +360,12 @@ def test_created_tests_message():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    # Check that "created X tests" message appears (now expecting 4 tests)
+    # Check that "created X tests" message appears (now expecting 5 tests)
     assert (
-        "created 4 tests" in output
-    ), f"Expected 'created 4 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+        "created 5 tests" in output
+    ), f"Expected 'created 5 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
 
-    print("✅ 'created 4 tests' message appears correctly", flush=True)
+    print("✅ 'created 5 tests' message appears correctly", flush=True)
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -494,4 +494,88 @@ def test_hybrid_server_supports_both_http_and_stdio():
     ), f"Expected tests to pass, got:\n{output}"
 
     print("✅ Hybrid server correctly detected HTTP support", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_tools_have_unique_names_passes_with_basic_server():
+    """Test that the test_tools_have_unique_names test passes when tools have unique names.
+
+    This test verifies that when all tools have distinct name fields,
+    the dynamically generated test_tools_have_unique_names test passes.
+    """
+    print("\n🔍 Testing tools have unique names check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_unique_names was created and ran
+    assert (
+        "test_tools_have_unique_names" in output
+    ), f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tools_have_unique_names" in output
+    ), f"Expected test_tools_have_unique_names to pass, got:\n{output}"
+
+    print("✅ test_tools_have_unique_names passed for basic server with unique names", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_unique_names_fails_with_duplicate_names():
+    """Test that the test_tools_have_unique_names test fails when tools have duplicate names.
+
+    This test verifies that when multiple tools share the same name field,
+    the dynamically generated test_tools_have_unique_names test fails with a clear message.
+    """
+    print("\n🔍 Testing tools have unique names check with server having duplicate names...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://duplicate-names-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_unique_names was created and ran
+    assert (
+        "test_tools_have_unique_names" in output
+    ), f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tools_have_unique_names" in output
+    ), f"Expected test_tools_have_unique_names to fail, got:\n{output}"
+
+    # Check that the failure message mentions duplicate names
+    assert (
+        "duplicate" in output.lower() or "unique" in output.lower()
+    ), f"Expected failure message about duplicate names, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when tool names are not unique, got exit code: {result.returncode}"
+
+    print("✅ test_tools_have_unique_names correctly failed for server with duplicate names", flush=True)
 
