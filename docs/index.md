@@ -37,7 +37,8 @@ The plugin automatically:
    - STDIO transport (if available)
    - Tool listing functionality
    - Tool description validation
-   - Tool name uniqueness validation
+   - Tool name presence and uniqueness validation
+   - Tool annotation validation (title presence and hint consistency)
 
 4. **Runs tests** alongside your regular pytest tests
 
@@ -132,6 +133,10 @@ Automatically creates tests for:
 - Tool listing functionality (HTTP and/or STDIO)
 - Tool description validation
 - Tool name presence and uniqueness validation
+- Tool annotation validation (when annotations are present):
+  - `title` field presence in each tool's `annotations` object
+  - Consistency of `readOnlyHint` with `destructiveHint` and `idempotentHint`
+    (a tool cannot be both read-only and destructive/idempotent)
 - Per-transport functionality verification
 
 ## Supported Server Types

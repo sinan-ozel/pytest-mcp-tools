@@ -3,7 +3,6 @@
 import json
 import subprocess
 import time
-from urllib.parse import urlparse
 
 import pytest
 import requests
@@ -185,10 +184,26 @@ def list_tools_stdio_subprocess(command):
 
     except subprocess.TimeoutExpired:
         raise ValueError("STDIO communication timed out")
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         raise ValueError(f"Command not found: {command[0]}")
     except Exception as e:
         raise ValueError(f"STDIO communication error: {e}")
+
+
+def validate_tools_have_names(tools):
+    """Validate that all tools have non-empty name fields.
+
+    Args:
+        tools: List of tool objects (dicts)
+
+    Raises:
+        AssertionError: If any tool is missing name or has empty name
+    """
+    assert tools, "Expected non-empty tools list"
+
+    for i, tool in enumerate(tools):
+        assert "name" in tool, f"Tool at index {i} is missing name field"
+        assert tool["name"], f"Tool at index {i} has empty name"
 
 
 def validate_tools_have_unique_names(tools):
@@ -211,6 +226,63 @@ def validate_tools_have_unique_names(tools):
                 f"{seen[name]} and {i}"
             )
         seen[name] = i
+
+
+def validate_tools_have_titles(tools):
+    """Validate that all tools with annotations have a title field.
+
+    Args:
+        tools: List of tool objects (dicts)
+
+    Raises:
+        AssertionError: If any tool with an annotations field is missing title
+    """
+    assert tools, "Expected non-empty tools list"
+
+    for tool in tools:
+        annotations = tool.get("annotations")
+        if annotations is None:
+            continue
+        tool_name = tool.get("name", "<unknown>")
+        assert "title" in annotations, (
+            f"Tool '{tool_name}' is missing title in annotations"
+        )
+        assert annotations["title"], (
+            f"Tool '{tool_name}' has empty title in annotations"
+        )
+
+
+def validate_tool_annotations_are_consistent(tools):
+    """Validate that readOnlyHint is not true when destructiveHint or idempotentHint
+    is true.
+
+    Args:
+        tools: List of tool objects (dicts)
+
+    Raises:
+        AssertionError: If any tool has readOnlyHint=True combined with
+            destructiveHint=True or idempotentHint=True
+    """
+    assert tools, "Expected non-empty tools list"
+
+    for tool in tools:
+        annotations = tool.get("annotations")
+        if annotations is None:
+            continue
+        tool_name = tool.get("name", "<unknown>")
+        read_only = annotations.get("readOnlyHint", False)
+        destructive = annotations.get("destructiveHint", False)
+        idempotent = annotations.get("idempotentHint", False)
+        if read_only and destructive:
+            assert False, (
+                f"Tool '{tool_name}' has readOnlyHint=True and "
+                f"destructiveHint=True, which are contradictory"
+            )
+        if read_only and idempotent:
+            assert False, (
+                f"Tool '{tool_name}' has readOnlyHint=True and "
+                f"idempotentHint=True, which are contradictory"
+            )
 
 
 def list_tools(base_url, endpoint="/mcp"):
@@ -389,6 +461,32 @@ def pytest_configure(config):
         config._mcp_tools_sse_deprecated = endpoints_sse_deprecated
         config._mcp_tools_server_unreachable = not server_ever_reachable
 
+        # Pre-fetch tools to detect whether any have annotations
+        config._mcp_tools_has_annotations = False
+        if "/mcp" in endpoints_found:
+            try:
+                anno_response = requests.post(
+                    f"{base_url}/mcp",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={"Content-Type": "application/json"},
+                    timeout=5
+                )
+                if anno_response.status_code == 200:
+                    anno_result = anno_response.json()
+                    if (
+                        "result" in anno_result
+                        and "tools" in anno_result["result"]
+                    ):
+                        tools_list = anno_result["result"]["tools"]
+                        if any("annotations" in t for t in tools_list):
+                            config._mcp_tools_has_annotations = True
+            except Exception:
+                pass
+
         # Try to detect STDIO support
         # Extract container name from URL (e.g., http://basic-server:8000 -> basic-server)
         config._mcp_tools_stdio = False
@@ -409,14 +507,14 @@ def pytest_configure(config):
                     timeout=1
                 )
                 if docker_check.returncode != 0:
-                    print(f"   ✗ STDIO not available: Docker command not found...")
+                    print("   ✗ STDIO not available: Docker command not found...")
                 else:
                     # Try to list tools via STDIO (spawns new container instance)
                     tools = list_tools_stdio(container_name)
                     config._mcp_tools_stdio = True
                     print(f"   ✓ STDIO communication successful ({len(tools)} tool(s) found)")
             except FileNotFoundError:
-                print(f"   ✗ STDIO not available: Docker command not found...")
+                print("   ✗ STDIO not available: Docker command not found...")
             except Exception as e:
                 error_msg = str(e)[:100]
                 print(f"   ✗ STDIO not available: {error_msg}...")
@@ -428,7 +526,7 @@ def pytest_configure(config):
             stdio_available = getattr(config, "_mcp_tools_stdio", False)
 
             if stdio_available:
-                print(f"✅ MCP Tools: STDIO transport detected (HTTP not available)\n")
+                print("✅ MCP Tools: STDIO transport detected (HTTP not available)\n")
             elif not server_ever_reachable:
                 print("⚠️  MCP Tools: No HTTP endpoints reachable.\n")
                 stdio_checked = hasattr(config, "_mcp_tools_stdio")
@@ -723,6 +821,167 @@ def pytest_collection_modifyitems(session, config, items):
         tools_desc_item.add_marker(pytest.mark.mcp_tools)
         test_items.append(tools_desc_item)
 
+        # Add test_tools_have_names if endpoints were found
+        # This tests that all tools have name fields
+        def make_tools_have_names_test(url, endpoint="/mcp"):
+            def test_tools_have_names():
+                """Test that all tools have name fields."""
+                response = requests.post(
+                    f"{url}{endpoint}",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                    timeout=5
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if "result" in result and "tools" in result["result"]:
+                    tools = result["result"]["tools"]
+                else:
+                    tools = []
+
+                validate_tools_have_names(tools)
+            return test_tools_have_names
+
+        tools_names_test_func = make_tools_have_names_test(base_url)
+        tools_names_test_func.__name__ = "test_tools_have_names"
+
+        tools_names_item = pytest.Function.from_parent(
+            module,
+            name="test_tools_have_names",
+            callobj=tools_names_test_func,
+        )
+        tools_names_item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(tools_names_item)
+
+        # Add test_tools_have_unique_names if endpoints were found
+        # This tests that all tools have unique name fields
+        def make_tools_have_unique_names_test(url, endpoint="/mcp"):
+            def test_tools_have_unique_names():
+                """Test that all tools have unique name fields."""
+                response = requests.post(
+                    f"{url}{endpoint}",
+                    json={
+                        "jsonrpc": "2.0",
+                        "method": "tools/list",
+                        "id": 1
+                    },
+                    headers={
+                        "Content-Type": "application/json",
+                    },
+                    timeout=5
+                )
+                response.raise_for_status()
+                result = response.json()
+
+                if "result" in result and "tools" in result["result"]:
+                    tools = result["result"]["tools"]
+                else:
+                    tools = []
+
+                validate_tools_have_unique_names(tools)
+            return test_tools_have_unique_names
+
+        tools_unique_names_test_func = make_tools_have_unique_names_test(base_url)
+        tools_unique_names_test_func.__name__ = "test_tools_have_unique_names"
+
+        tools_unique_names_item = pytest.Function.from_parent(
+            module,
+            name="test_tools_have_unique_names",
+            callobj=tools_unique_names_test_func,
+        )
+        tools_unique_names_item.add_marker(pytest.mark.mcp_tools)
+        test_items.append(tools_unique_names_item)
+
+        # Add annotation tests only when at least one tool has annotations
+        has_annotations = getattr(config, "_mcp_tools_has_annotations", False)
+        if has_annotations:
+            def make_tools_have_titles_test(url, endpoint="/mcp"):
+                def test_tools_have_titles():
+                    """Test that all tools with annotations have a title field."""
+                    response = requests.post(
+                        f"{url}{endpoint}",
+                        json={
+                            "jsonrpc": "2.0",
+                            "method": "tools/list",
+                            "id": 1
+                        },
+                        headers={
+                            "Content-Type": "application/json",
+                        },
+                        timeout=5
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+
+                    if "result" in result and "tools" in result["result"]:
+                        tools = result["result"]["tools"]
+                    else:
+                        tools = []
+
+                    validate_tools_have_titles(tools)
+                return test_tools_have_titles
+
+            tools_titles_test_func = make_tools_have_titles_test(base_url)
+            tools_titles_test_func.__name__ = "test_tools_have_titles"
+
+            tools_titles_item = pytest.Function.from_parent(
+                module,
+                name="test_tools_have_titles",
+                callobj=tools_titles_test_func,
+            )
+            tools_titles_item.add_marker(pytest.mark.mcp_tools)
+            test_items.append(tools_titles_item)
+
+            def make_tool_annotations_are_consistent_test(url, endpoint="/mcp"):
+                def test_tool_annotations_are_consistent():
+                    """Test that annotation hints are not contradictory.
+
+                    Validates that readOnlyHint is not true when destructiveHint
+                    or idempotentHint is true.
+                    """
+                    response = requests.post(
+                        f"{url}{endpoint}",
+                        json={
+                            "jsonrpc": "2.0",
+                            "method": "tools/list",
+                            "id": 1
+                        },
+                        headers={
+                            "Content-Type": "application/json",
+                        },
+                        timeout=5
+                    )
+                    response.raise_for_status()
+                    result = response.json()
+
+                    if "result" in result and "tools" in result["result"]:
+                        tools = result["result"]["tools"]
+                    else:
+                        tools = []
+
+                    validate_tool_annotations_are_consistent(tools)
+                return test_tool_annotations_are_consistent
+
+            annotations_test_func = make_tool_annotations_are_consistent_test(
+                base_url
+            )
+            annotations_test_func.__name__ = "test_tool_annotations_are_consistent"
+
+            annotations_item = pytest.Function.from_parent(
+                module,
+                name="test_tool_annotations_are_consistent",
+                callobj=annotations_test_func,
+            )
+            annotations_item.add_marker(pytest.mark.mcp_tools)
+            test_items.append(annotations_item)
+
     # Add STDIO-specific tests if STDIO is supported (and not already added above)
     stdio_supported = getattr(config, "_mcp_tools_stdio", False)
     if stdio_supported and endpoints:  # Only add if we also have HTTP endpoints (hybrid server)
@@ -773,45 +1032,6 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 stdio_item.add_marker(pytest.mark.mcp_tools)
                 test_items.append(stdio_item)
-
-        # Add test_tools_have_unique_names if endpoints were found
-        # This tests that all tools have unique name fields
-        def make_tools_have_unique_names_test(url, endpoint="/mcp"):
-            def test_tools_have_unique_names():
-                """Test that all tools have unique name fields."""
-                response = requests.post(
-                    f"{url}{endpoint}",
-                    json={
-                        "jsonrpc": "2.0",
-                        "method": "tools/list",
-                        "id": 1
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                    },
-                    timeout=5
-                )
-                response.raise_for_status()
-                result = response.json()
-
-                if "result" in result and "tools" in result["result"]:
-                    tools = result["result"]["tools"]
-                else:
-                    tools = []
-
-                validate_tools_have_unique_names(tools)
-            return test_tools_have_unique_names
-
-        tools_unique_names_test_func = make_tools_have_unique_names_test(base_url)
-        tools_unique_names_test_func.__name__ = "test_tools_have_unique_names"
-
-        tools_unique_names_item = pytest.Function.from_parent(
-            module,
-            name="test_tools_have_unique_names",
-            callobj=tools_unique_names_test_func,
-        )
-        tools_unique_names_item.add_marker(pytest.mark.mcp_tools)
-        test_items.append(tools_unique_names_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)

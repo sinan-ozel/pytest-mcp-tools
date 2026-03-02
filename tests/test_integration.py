@@ -579,3 +579,208 @@ def test_tools_have_unique_names_fails_with_duplicate_names():
 
     print("✅ test_tools_have_unique_names correctly failed for server with duplicate names", flush=True)
 
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_titles_passes_with_annotations_server():
+    """Test that test_tools_have_titles passes when tools have a title annotation.
+
+    This test verifies that when all tools include a title in their annotations,
+    the dynamically generated test_tools_have_titles test passes.
+    """
+    print("\n🔍 Testing tools have titles check with annotations server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://annotations-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_titles was created and ran
+    assert (
+        "test_tools_have_titles" in output
+    ), f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tools_have_titles" in output
+    ), f"Expected test_tools_have_titles to pass, got:\n{output}"
+
+    print("✅ test_tools_have_titles passed for annotations server with titles", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tools_have_titles_fails_without_titles():
+    """Test that test_tools_have_titles fails when tools lack a title annotation.
+
+    This test verifies that when tools have annotations but are missing the title
+    field, the dynamically generated test_tools_have_titles test fails with a
+    clear message.
+    """
+    print("\n🔍 Testing tools have titles check with no-titles server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-titles-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tools_have_titles was created and ran
+    assert (
+        "test_tools_have_titles" in output
+    ), f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tools_have_titles" in output
+    ), f"Expected test_tools_have_titles to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing title
+    assert (
+        "title" in output.lower()
+    ), f"Expected failure message about missing title, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when title is missing, got exit code: {result.returncode}"
+
+    print("✅ test_tools_have_titles correctly failed for server without titles", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tool_annotations_are_consistent_passes_with_annotations_server():
+    """Test that test_tool_annotations_are_consistent passes for valid annotations.
+
+    This test verifies that when tools have consistent annotation hints
+    (readOnlyHint is not true alongside destructiveHint or idempotentHint),
+    the dynamically generated test_tool_annotations_are_consistent test passes.
+    """
+    print(
+        "\n🔍 Testing annotation consistency check with annotations server...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://annotations-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tool_annotations_are_consistent was created and ran
+    assert (
+        "test_tool_annotations_are_consistent" in output
+    ), (
+        f"Expected test_tool_annotations_are_consistent in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_tool_annotations_are_consistent" in output
+    ), (
+        f"Expected test_tool_annotations_are_consistent to pass, "
+        f"got:\n{output}"
+    )
+
+    print(
+        "✅ test_tool_annotations_are_consistent passed for annotations server",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_tool_annotations_are_consistent_fails_with_conflicting_annotations():
+    """Test that test_tool_annotations_are_consistent fails for conflicting annotations.
+
+    This test verifies that when tools have readOnlyHint=True combined with
+    destructiveHint=True or idempotentHint=True, the dynamically generated
+    test_tool_annotations_are_consistent test fails with a clear message.
+    """
+    print(
+        "\n🔍 Testing annotation consistency check with conflicting annotations server...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://conflicting-annotations-server:8000",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that test_tool_annotations_are_consistent was created and ran
+    assert (
+        "test_tool_annotations_are_consistent" in output
+    ), (
+        f"Expected test_tool_annotations_are_consistent in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_tool_annotations_are_consistent" in output
+    ), (
+        f"Expected test_tool_annotations_are_consistent to fail, "
+        f"got:\n{output}"
+    )
+
+    # Check that the failure message mentions the conflicting hints
+    assert (
+        "readOnly" in output or "readonly" in output.lower()
+        or "destructive" in output.lower() or "idempotent" in output.lower()
+    ), f"Expected failure message about conflicting hints, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), (
+        f"Expected pytest to fail when annotation hints conflict, "
+        f"got exit code: {result.returncode}"
+    )
+
+    print(
+        "✅ test_tool_annotations_are_consistent correctly failed for "
+        "server with conflicting annotations",
+        flush=True,
+    )
+
