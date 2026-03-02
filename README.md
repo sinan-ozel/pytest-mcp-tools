@@ -26,6 +26,8 @@ pytest --mcp-tools=http://localhost:8000
    ✓ Found endpoint: /mcp (status: 200)
    ✗ Endpoint /sse not found (status: 404)
    ✗ Endpoint /messages not found (status: 404)
+🔍 MCP Tools: Checking STDIO support for docker-image...
+   ✓ STDIO communication successful (3 tool(s) found)
 ✅ MCP Tools: Discovered endpoints: /mcp
 
 ============================= test session starts ==============================
@@ -33,19 +35,22 @@ platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/p
 cachedir: .pytest_cache
 rootdir: /app
 configfile: pyproject.toml
-plugins: anyio-4.12.1, mcp-tools-0.1.2
-
+plugins: mcp-tools-0.1.2, anyio-4.12.1
 collecting ... collected 0 items
-created 3 tests
+
+created 6 tests
 ✅ MCP tools test created for discovered endpoints: /mcp
    📡 HTTP streaming support detected
+   📡 STDIO transport support detected
 
-..::test_mcp_tools[POST /mcp] PASSED                                     [ 25%]
-..::test_list_tools_from_basic_server PASSED                             [ 50%]
-..::test_tools_have_descriptions PASSED                                  [ 75%]
+..::test_mcp_tools[POST /mcp] PASSED                                     [ 16%]
+..::test_list_tools_from_basic_server PASSED                             [ 33%]
+..::test_tools_have_descriptions PASSED                                  [ 50%]
+..::test_tools_have_names PASSED                                         [ 66%]
+..::test_tools_have_unique_names PASSED                                  [ 83%]
+..::test_list_tools_via_stdio PASSED                                     [100%]
 
-============================== 3 passed in 0.02s ===============================
-test-runner-for-docker-image exited with code 0
+============================== 6 passed in 2.62s ===============================
 ```
 
 ## Features

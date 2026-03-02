@@ -111,7 +111,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-http-server/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-http-server up --build --abort-on-container-exit --exit-code-from test"
+        "docker pull ${input:dockerhubImage} && DOCKERHUB_IMAGE=${input:dockerhubImage} PYTEST_ARGS='${input:pytestArgs}' docker compose -f ${workspaceFolder}/test-with-http-server/docker-compose.yaml --project-directory ${workspaceFolder}/test-with-http-server up --build --remove-orphans --abort-on-container-exit --exit-code-from test"
       ],
       "problemMatcher": [],
       "group": {
