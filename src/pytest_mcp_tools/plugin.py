@@ -426,35 +426,54 @@ def pytest_configure(config):
                             allow_redirects=False,
                         )
 
-                    # Check for 406 Not Acceptable (SSE-based MCP, deprecated)
-                    if response.status_code == 406:
-                        if endpoint not in endpoints_sse_deprecated:
-                            endpoints_sse_deprecated.append(endpoint)
-                            print(f"   ⚠️  Endpoint {endpoint} uses SSE (deprecated): 406 Not Acceptable")
-                    # Only consider endpoint as existing if we get a response that indicates
-                    # the endpoint exists (not 404/406). Acceptable codes:
+                    # /sse and /messages are deprecated transports.
+                    # If they exist (any non-404 response), warn but do not
+                    # count them as valid endpoints.
+                    if endpoint in ("/sse", "/messages"):
+                        if response.status_code == 404:
+                            if endpoint not in endpoints_404:
+                                endpoints_404.append(endpoint)
+                                print(
+                                    f"   ✗ Endpoint {endpoint} not found"
+                                    f" (status: 404)"
+                                )
+                        elif response.status_code < 500:
+                            if endpoint not in endpoints_sse_deprecated:
+                                endpoints_sse_deprecated.append(endpoint)
+                                print(
+                                    f"   ⚠️  Endpoint {endpoint} is deprecated"
+                                    f" (status: {response.status_code})"
+                                )
+                            if endpoint == "/sse":
+                                config._mcp_tools_sse = True
+                        continue
+
+                    # /mcp: only consider it as existing if we get a response
+                    # that indicates the endpoint exists (not 404). Acceptable:
                     # - 200-299: Success
-                    # - 400-499 except 404/406: Client error (endpoint exists but request invalid)
+                    # - 400-499 except 404: Client error (endpoint exists but
+                    #   request is malformed)
                     # - 405: Method not allowed (endpoint exists, wrong method)
-                    elif response.status_code < 500 and response.status_code not in (404, 406):
+                    if response.status_code < 500 and response.status_code != 404:
                         if endpoint not in endpoints_found:
                             endpoints_found.append(endpoint)
-                            print(f"   ✓ Found endpoint: {endpoint} (status: {response.status_code})")
-
-                        # Set internal toggles
-                        if endpoint == "/mcp":
-                            config._mcp_tools_http_streaming = True
-                        elif endpoint == "/sse":
-                            config._mcp_tools_sse = True
-                        elif endpoint == "/messages":
-                            config._mcp_tools_http_streaming = True
+                            print(
+                                f"   ✓ Found endpoint: {endpoint}"
+                                f" (status: {response.status_code})"
+                            )
+                        config._mcp_tools_http_streaming = True
                     elif response.status_code == 404:
-                        # Mark this endpoint as 404
                         if endpoint not in endpoints_404:
                             endpoints_404.append(endpoint)
-                            print(f"   ✗ Endpoint {endpoint} not found (status: 404)")
+                            print(
+                                f"   ✗ Endpoint {endpoint} not found"
+                                f" (status: 404)"
+                            )
                 except requests.exceptions.RequestException as e:
-                    print(f"   ✗ Endpoint {endpoint} check failed ({type(e).__name__})")
+                    print(
+                        f"   ✗ Endpoint {endpoint} check failed"
+                        f" ({type(e).__name__})"
+                    )
 
         # Store discovered endpoints and SSE info
         config._mcp_tools_endpoints = endpoints_found
@@ -539,14 +558,14 @@ def pytest_configure(config):
                 print("❌ MCP Tools: No MCP endpoints discovered!\n")
 
             if endpoints_sse_deprecated:
-                print(f"⚠️  Note: Found SSE-based endpoints {endpoints_sse_deprecated}, but SSE is deprecated.")
-                print("   MCP over HTTP with SSE is no longer supported. Use stdio transport instead.\n")
-
-        # Raise warning if SSE is used (legacy)
-        if config._mcp_tools_sse:
-            print(
-                "⚠️  Warning: SSE endpoint detected. SSE is legacy and should be migrated to HTTP streaming."
-            )
+                print(
+                    f"⚠️  Note: Found deprecated endpoints"
+                    f" {endpoints_sse_deprecated}."
+                )
+                print(
+                    "   /sse and /messages are no longer supported."
+                    " Migrate to /mcp (HTTP streaming) or STDIO.\n"
+                )
 
 
 def pytest_collection_modifyitems(session, config, items):
@@ -1069,7 +1088,7 @@ def pytest_collection_finish(session):
             if http_streaming:
                 print("   📡 HTTP streaming support detected")
             if sse:
-                print("   📡 SSE support detected (legacy)")
+                print("   ⚠️  SSE endpoint detected (deprecated)")
             if stdio:
                 print("   📡 STDIO transport support detected")
 
