@@ -116,6 +116,63 @@ services:
       retries: 20
       start_period: 5s
 
+  annotations-server:
+    build:
+      context: servers/annotations_server
+      dockerfile: Dockerfile
+    image: annotations-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  no-titles-server:
+    build:
+      context: servers/no_titles_server
+      dockerfile: Dockerfile
+    image: no-titles-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  conflicting-annotations-server:
+    build:
+      context: servers/conflicting_annotations_server
+      dockerfile: Dockerfile
+    image: conflicting-annotations-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -135,6 +192,12 @@ services:
       duplicate-names-server:
         condition: service_healthy
       hybrid-server:
+        condition: service_healthy
+      annotations-server:
+        condition: service_healthy
+      no-titles-server:
+        condition: service_healthy
+      conflicting-annotations-server:
         condition: service_healthy
     networks:
       - testnet

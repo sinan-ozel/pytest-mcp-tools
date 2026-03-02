@@ -1,9 +1,9 @@
 - [ ] Add stdio support - WON'T DO
 - [x] Check that the tool has `name`.
-- [ ] Check that the `name`s are unique
-- [ ] Check annotation: `title`
-- [ ] Check annotation: expect `readOnlyHint`==`false` if `idempotentHint`
-- [ ] Check annotation: expect `readOnlyHint`==`false` if `destructiveHint`
+- [x] Check that the `name`s are unique
+- [x] Check annotation: `title`
+- [x] Check annotation: expect `readOnlyHint`==`false` if `idempotentHint`
+- [x] Check annotation: expect `readOnlyHint`==`false` if `destructiveHint`
 - [ ] Check `inputSchema`.
 - [ ] Check that `inputSchema` has examples for all fields/properties
 - [ ] Check an example (optional with kwarg)

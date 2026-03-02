@@ -6,6 +6,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.4] - 2026-03-01
+
+### Added
+- Annotation validation for MCP tools:
+  - `validate_tools_have_titles()` — checks that every tool with an
+    `annotations` field includes a non-empty `title`
+  - `validate_tool_annotations_are_consistent()` — checks that
+    `readOnlyHint` is not `True` when `destructiveHint` or `idempotentHint`
+    is also `True`
+  - `test_tools_have_titles` dynamically generated test (only emitted when
+    at least one tool has an `annotations` field)
+  - `test_tool_annotations_are_consistent` dynamically generated test
+    (only emitted when at least one tool has an `annotations` field)
+- Three new mock servers for annotation testing:
+  - `annotations_server` — tools with proper annotations (passing case)
+  - `no_titles_server` — tools missing `title` in annotations
+  - `conflicting_annotations_server` — tools with `readOnlyHint=True` and
+    `destructiveHint=True` or `idempotentHint=True`
+- Integration tests covering all four annotation validation scenarios
+- Restored `validate_tools_have_names()` and `test_tools_have_names` to
+  the HTTP-only test path (regression fix from STDIO refactor)
+- Restored `test_tools_have_unique_names` to the HTTP-only test path
+
+### Fixed
+- `validate_tools_have_names` and its generated test were missing from the
+  HTTP-only branch of the plugin after the STDIO support refactor
+- `test_tools_have_unique_names` was only generated for hybrid
+  (HTTP + STDIO) servers; now generated for all servers with HTTP endpoints
+
+### Changed
+- `test_tools_have_unique_names` moved from STDIO+HTTP branch to the
+  HTTP-only branch so it runs regardless of STDIO availability
+
+
 ## [0.1.3] - 2026-03-01
 
 ### Added
@@ -41,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tool listing and description validation
 - Basic test generation
 
+[0.1.4]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/sinan-ozel/pytest-mcp-tools/releases/tag/v0.1.1

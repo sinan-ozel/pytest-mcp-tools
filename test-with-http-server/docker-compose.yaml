@@ -2,7 +2,6 @@ services:
   # Service that runs the Docker Hub image under test
   docker-image:
     image: "${DOCKERHUB_IMAGE}"
-    container_name: docker-image
     networks:
       - test-net
     environment:
@@ -24,7 +23,6 @@ services:
     build:
       context: ..
       dockerfile: test-with-http-server/Dockerfile
-    container_name: test-runner-for-docker-image
     networks:
       - test-net
     depends_on:

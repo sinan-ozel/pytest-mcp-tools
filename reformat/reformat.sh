@@ -17,7 +17,7 @@ echo ""
 echo "=========================================="
 echo "Running ruff check --fix --select I (import sorter)..."
 echo "=========================================="
-ruff check src/ --fix --select I
+ruff check src/ --fix
 
 echo ""
 echo "=========================================="
