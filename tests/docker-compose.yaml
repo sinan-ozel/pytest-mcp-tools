@@ -173,6 +173,82 @@ services:
       retries: 20
       start_period: 5s
 
+  no-field-descriptions-server:
+    build:
+      context: servers/no_field_descriptions_server
+      dockerfile: Dockerfile
+    image: no-field-descriptions-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  invalid-field-types-server:
+    build:
+      context: servers/invalid_field_types_server
+      dockerfile: Dockerfile
+    image: invalid-field-types-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  deeply-nested-server:
+    build:
+      context: servers/deeply_nested_server
+      dockerfile: Dockerfile
+    image: deeply-nested-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  deeply-nested-invalid-type-server:
+    build:
+      context: servers/deeply_nested_invalid_type_server
+      dockerfile: Dockerfile
+    image: deeply-nested-invalid-type-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -198,6 +274,14 @@ services:
       no-titles-server:
         condition: service_healthy
       conflicting-annotations-server:
+        condition: service_healthy
+      no-field-descriptions-server:
+        condition: service_healthy
+      invalid-field-types-server:
+        condition: service_healthy
+      deeply-nested-server:
+        condition: service_healthy
+      deeply-nested-invalid-type-server:
         condition: service_healthy
     networks:
       - testnet
