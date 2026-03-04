@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.5] - 2026-03-03
+
+### Added
+- Per-tool `inputSchema` field validation — for every tool that exposes
+  `inputSchema.properties` the plugin now generates two named tests
+  (marker: `mcp_tools_input_schema`):
+  - `test_{tool_name}_input_schema_field_descriptions` — verifies that
+    every property at every nesting depth carries a non-empty `description`
+  - `test_{tool_name}_input_schema_field_types` — verifies that every
+    property at every nesting depth has a `type` set to one of the seven
+    valid JSON Schema primitive types (`string`, `number`, `integer`,
+    `boolean`, `array`, `object`, `null`)
+- Both checks recurse into nested `properties` objects (arbitrary depth),
+  so fields buried inside three-level schemas are caught
+- New helper functions `collect_input_schema_missing_descriptions()` and
+  `collect_input_schema_invalid_types()` (both recursive)
+- New `mcp_tools_input_schema` pytest marker registered in `pytest_configure`
+- Six new Docker test servers: `no_field_descriptions_server`,
+  `invalid_field_types_server`, `deeply_nested_server`,
+  `deeply_nested_invalid_type_server` (plus supporting infrastructure)
+
+### Updated
+- `docs/index.md` — documents new per-tool tests and the
+  `mcp_tools_input_schema` marker
+
 ## [0.1.4] - 2026-03-01
 
 ### Added
