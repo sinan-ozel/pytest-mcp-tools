@@ -346,6 +346,32 @@ def validate_tool_annotations_are_consistent(tools):
             )
 
 
+def _fetch_tool_by_name(url, tool_name, endpoint="/mcp"):
+    """Fetch a single tool from the MCP server's tools/list by name.
+
+    Args:
+        url: The base URL of the MCP server
+        tool_name: The name of the tool to look up
+        endpoint: The MCP endpoint to use (default: /mcp)
+
+    Returns:
+        The tool dict, or None if not found
+    """
+    response = requests.post(
+        f"{url}{endpoint}",
+        json={"jsonrpc": "2.0", "method": "tools/list", "id": 1},
+        headers={"Content-Type": "application/json"},
+        timeout=5,
+    )
+    response.raise_for_status()
+    result = response.json()
+    if "result" in result and "tools" in result["result"]:
+        for t in result["result"]["tools"]:
+            if t.get("name") == tool_name:
+                return t
+    return None
+
+
 def list_tools(base_url, endpoint="/mcp"):
     """List available tools from MCP server.
 
@@ -1082,122 +1108,10 @@ def pytest_collection_modifyitems(session, config, items):
             annotations_item.add_marker(pytest.mark.mcp_tools)
             test_items.append(annotations_item)
 
-        # Add per-tool inputSchema field description and type tests.
-        # One test per tool, named after the tool, scanning all nested fields.
+        # Add per-tool inputSchema and outputSchema validation tests.
+        # One pair of tests per tool for inputSchema (when properties exist),
+        # and one pair (or a presence test) for outputSchema.
         tools_list = getattr(config, "_mcp_tools_tools_list", [])
-        for tool in tools_list:
-            tool_name = tool.get("name", "")
-            if not tool_name:
-                continue
-            input_schema = tool.get("inputSchema", {})
-            properties = input_schema.get("properties", {})
-            if not properties:
-                continue
-
-            # Sanitise the tool name for use as a Python identifier
-            safe_name = tool_name.replace("-", "_").replace(" ", "_")
-
-            # --- per-tool description test ---
-            def make_tool_field_descriptions_test(url, tname, endpoint="/mcp"):
-                def test_func():
-                    """Test that every inputSchema field has a description."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
-                    )
-                    schema_props = (
-                        current_tool.get("inputSchema", {}).get("properties", {})
-                    )
-                    missing = collect_input_schema_missing_descriptions(schema_props)
-                    assert not missing, (
-                        f"Tool '{tname}' has inputSchema fields missing description: "
-                        + ", ".join(missing)
-                    )
-                return test_func
-
-            desc_test_name = f"test_{safe_name}_input_schema_field_descriptions"
-            desc_func = make_tool_field_descriptions_test(base_url, tool_name)
-            desc_func.__name__ = desc_test_name
-            desc_item = pytest.Function.from_parent(
-                module,
-                name=desc_test_name,
-                callobj=desc_func,
-            )
-            desc_item.add_marker(pytest.mark.mcp_tools_input_schema)
-            test_items.append(desc_item)
-
-            # --- per-tool type test ---
-            def make_tool_field_types_test(url, tname, endpoint="/mcp"):
-                def test_func():
-                    """Test that every inputSchema field has a valid type."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
-                    )
-                    schema_props = (
-                        current_tool.get("inputSchema", {}).get("properties", {})
-                    )
-                    invalid = collect_input_schema_invalid_types(schema_props)
-                    if invalid:
-                        details = "; ".join(
-                            f"'{p}' type is {issue} (got {v!r})"
-                            for p, v, issue in invalid
-                        )
-                        assert False, (
-                            f"Tool '{tname}' has inputSchema fields with missing or "
-                            f"invalid type: {details}"
-                        )
-                return test_func
-
-            type_test_name = f"test_{safe_name}_input_schema_field_types"
-            type_func = make_tool_field_types_test(base_url, tool_name)
-            type_func.__name__ = type_test_name
-            type_item = pytest.Function.from_parent(
-                module,
-                name=type_test_name,
-                callobj=type_func,
-            )
-            type_item.add_marker(pytest.mark.mcp_tools_input_schema)
-            test_items.append(type_item)
-
-        # Add per-tool outputSchema field description and type tests.
-        # outputSchema is optional; only generate tests when it is present.
-        # If --mcp-tools-enforce-output-schema is set, generate a failing test
-        # for any tool that lacks an outputSchema entirely.
         enforce_output_schema = getattr(
             config, "_mcp_tools_enforce_output_schema", False
         )
@@ -1205,11 +1119,79 @@ def pytest_collection_modifyitems(session, config, items):
             tool_name = tool.get("name", "")
             if not tool_name:
                 continue
+            # Sanitise the tool name for use as a Python identifier
             safe_name = tool_name.replace("-", "_").replace(" ", "_")
-            output_schema = tool.get("outputSchema")
 
+            # --- inputSchema tests ---
+            input_props = tool.get("inputSchema", {}).get("properties", {})
+            if input_props:
+                def make_tool_field_descriptions_test(url, tname, endpoint="/mcp"):
+                    def test_func():
+                        """Test that every inputSchema field has a description."""
+                        current_tool = _fetch_tool_by_name(url, tname, endpoint)
+                        assert current_tool is not None, (
+                            f"Tool '{tname}' not found in tools list"
+                        )
+                        schema_props = (
+                            current_tool.get("inputSchema", {}).get("properties", {})
+                        )
+                        missing = collect_input_schema_missing_descriptions(schema_props)
+                        assert not missing, (
+                            f"Tool '{tname}' has inputSchema fields missing description: "
+                            + ", ".join(missing)
+                        )
+                    return test_func
+
+                desc_test_name = f"test_{safe_name}_input_schema_field_descriptions"
+                desc_func = make_tool_field_descriptions_test(base_url, tool_name)
+                desc_func.__name__ = desc_test_name
+                desc_item = pytest.Function.from_parent(
+                    module,
+                    name=desc_test_name,
+                    callobj=desc_func,
+                )
+                desc_item.add_marker(pytest.mark.mcp_tools_input_schema)
+                test_items.append(desc_item)
+
+                def make_tool_field_types_test(url, tname, endpoint="/mcp"):
+                    def test_func():
+                        """Test that every inputSchema field has a valid type."""
+                        current_tool = _fetch_tool_by_name(url, tname, endpoint)
+                        assert current_tool is not None, (
+                            f"Tool '{tname}' not found in tools list"
+                        )
+                        schema_props = (
+                            current_tool.get("inputSchema", {}).get("properties", {})
+                        )
+                        invalid = collect_input_schema_invalid_types(schema_props)
+                        if invalid:
+                            details = "; ".join(
+                                f"'{p}' type is {issue} (got {v!r})"
+                                for p, v, issue in invalid
+                            )
+                            assert False, (
+                                f"Tool '{tname}' has inputSchema fields with missing or "
+                                f"invalid type: {details}"
+                            )
+                    return test_func
+
+                type_test_name = f"test_{safe_name}_input_schema_field_types"
+                type_func = make_tool_field_types_test(base_url, tool_name)
+                type_func.__name__ = type_test_name
+                type_item = pytest.Function.from_parent(
+                    module,
+                    name=type_test_name,
+                    callobj=type_func,
+                )
+                type_item.add_marker(pytest.mark.mcp_tools_input_schema)
+                test_items.append(type_item)
+
+            # --- outputSchema tests ---
+            # outputSchema is optional; only generate validation tests when present.
+            # With --mcp-tools-enforce-output-schema, generate a failing test for
+            # any tool that lacks an outputSchema entirely.
+            output_schema = tool.get("outputSchema")
             if output_schema is None:
-                # outputSchema absent — only act if enforce flag is set
                 if enforce_output_schema:
                     def make_output_schema_present_test(tname):
                         def test_func():
@@ -1230,110 +1212,85 @@ def pytest_collection_modifyitems(session, config, items):
                     )
                     presence_item.add_marker(pytest.mark.mcp_tools_output_schema)
                     test_items.append(presence_item)
-                continue
+            else:
+                output_props = output_schema.get("properties", {})
+                if output_props:
+                    def make_tool_output_field_descriptions_test(
+                        url, tname, endpoint="/mcp"
+                    ):
+                        def test_func():
+                            """Test that every outputSchema field has a description."""
+                            current_tool = _fetch_tool_by_name(url, tname, endpoint)
+                            assert current_tool is not None, (
+                                f"Tool '{tname}' not found in tools list"
+                            )
+                            schema_props = (
+                                current_tool.get("outputSchema", {})
+                                .get("properties", {})
+                            )
+                            missing = collect_input_schema_missing_descriptions(
+                                schema_props
+                            )
+                            assert not missing, (
+                                f"Tool '{tname}' has outputSchema fields missing "
+                                f"description: " + ", ".join(missing)
+                            )
+                        return test_func
 
-            output_props = output_schema.get("properties", {})
-            if not output_props:
-                continue
+                    out_desc_test_name = (
+                        f"test_{safe_name}_output_schema_field_descriptions"
+                    )
+                    out_desc_func = make_tool_output_field_descriptions_test(
+                        base_url, tool_name
+                    )
+                    out_desc_func.__name__ = out_desc_test_name
+                    out_desc_item = pytest.Function.from_parent(
+                        module,
+                        name=out_desc_test_name,
+                        callobj=out_desc_func,
+                    )
+                    out_desc_item.add_marker(pytest.mark.mcp_tools_output_schema)
+                    test_items.append(out_desc_item)
 
-            # --- per-tool outputSchema description test ---
-            def make_tool_output_field_descriptions_test(url, tname, endpoint="/mcp"):
-                def test_func():
-                    """Test that every outputSchema field has a description."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
-                    )
-                    schema_props = (
-                        current_tool.get("outputSchema", {}).get("properties", {})
-                    )
-                    missing = collect_input_schema_missing_descriptions(schema_props)
-                    assert not missing, (
-                        f"Tool '{tname}' has outputSchema fields missing description: "
-                        + ", ".join(missing)
-                    )
-                return test_func
+                    def make_tool_output_field_types_test(
+                        url, tname, endpoint="/mcp"
+                    ):
+                        def test_func():
+                            """Test that every outputSchema field has a valid type."""
+                            current_tool = _fetch_tool_by_name(url, tname, endpoint)
+                            assert current_tool is not None, (
+                                f"Tool '{tname}' not found in tools list"
+                            )
+                            schema_props = (
+                                current_tool.get("outputSchema", {})
+                                .get("properties", {})
+                            )
+                            invalid = collect_input_schema_invalid_types(schema_props)
+                            if invalid:
+                                details = "; ".join(
+                                    f"'{p}' type is {issue} (got {v!r})"
+                                    for p, v, issue in invalid
+                                )
+                                assert False, (
+                                    f"Tool '{tname}' has outputSchema fields with "
+                                    f"missing or invalid type: {details}"
+                                )
+                        return test_func
 
-            out_desc_test_name = f"test_{safe_name}_output_schema_field_descriptions"
-            out_desc_func = make_tool_output_field_descriptions_test(
-                base_url, tool_name
-            )
-            out_desc_func.__name__ = out_desc_test_name
-            out_desc_item = pytest.Function.from_parent(
-                module,
-                name=out_desc_test_name,
-                callobj=out_desc_func,
-            )
-            out_desc_item.add_marker(pytest.mark.mcp_tools_output_schema)
-            test_items.append(out_desc_item)
-
-            # --- per-tool outputSchema type test ---
-            def make_tool_output_field_types_test(url, tname, endpoint="/mcp"):
-                def test_func():
-                    """Test that every outputSchema field has a valid type."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
+                    out_type_test_name = (
+                        f"test_{safe_name}_output_schema_field_types"
                     )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
+                    out_type_func = make_tool_output_field_types_test(
+                        base_url, tool_name
                     )
-                    schema_props = (
-                        current_tool.get("outputSchema", {}).get("properties", {})
+                    out_type_func.__name__ = out_type_test_name
+                    out_type_item = pytest.Function.from_parent(
+                        module,
+                        name=out_type_test_name,
+                        callobj=out_type_func,
                     )
-                    invalid = collect_input_schema_invalid_types(schema_props)
-                    if invalid:
-                        details = "; ".join(
-                            f"'{p}' type is {issue} (got {v!r})"
-                            for p, v, issue in invalid
-                        )
-                        assert False, (
-                            f"Tool '{tname}' has outputSchema fields with missing or "
-                            f"invalid type: {details}"
-                        )
-                return test_func
-
-            out_type_test_name = f"test_{safe_name}_output_schema_field_types"
-            out_type_func = make_tool_output_field_types_test(base_url, tool_name)
-            out_type_func.__name__ = out_type_test_name
-            out_type_item = pytest.Function.from_parent(
-                module,
-                name=out_type_test_name,
-                callobj=out_type_func,
-            )
-            out_type_item.add_marker(pytest.mark.mcp_tools_output_schema)
-            test_items.append(out_type_item)
+                    out_type_item.add_marker(pytest.mark.mcp_tools_output_schema)
+                    test_items.append(out_type_item)
 
     # Add STDIO-specific tests if STDIO is supported (and not already added above)
     stdio_supported = getattr(config, "_mcp_tools_stdio", False)
