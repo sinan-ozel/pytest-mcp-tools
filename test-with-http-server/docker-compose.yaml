@@ -13,8 +13,6 @@ services:
       timeout: 3s
       retries: 20
       start_period: 10s
-    ports:
-      - "8000:8000"
 
   # Pytest runner that builds from the workspace and runs tests against the image
   test:

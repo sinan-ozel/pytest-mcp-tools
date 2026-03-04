@@ -1,10 +1,120 @@
 """Pytest plugin for MCP tools testing."""
 
+import json
 import time
 
 import pytest
 import requests
 from _pytest.python import Module
+
+
+_MCP_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/event-stream",
+}
+
+
+def _parse_mcp_response(response):
+    """Parse an MCP HTTP response, handling both JSON and SSE (text/event-stream).
+
+    The MCP Streamable HTTP transport allows servers to respond with either
+    ``Content-Type: application/json`` or ``Content-Type: text/event-stream``.
+    This helper normalises both into a plain dict.
+
+    Args:
+        response: A ``requests.Response`` object whose body has been fully read.
+
+    Returns:
+        Parsed JSON object (dict).
+
+    Raises:
+        ValueError: If SSE response contains no parseable ``data:`` line.
+    """
+    content_type = response.headers.get("Content-Type", "")
+    if "text/event-stream" in content_type:
+        for line in response.text.splitlines():
+            line = line.strip()
+            if line.startswith("data:"):
+                data = line[len("data:"):].strip()
+                if data and data != "[DONE]":
+                    return json.loads(data)
+        raise ValueError("No data found in SSE response")
+    return response.json()
+
+
+def _establish_session(base_url, endpoint="/mcp"):
+    """Perform the MCP initialization handshake and return extra request headers.
+
+    Sends an ``initialize`` JSON-RPC request as required by the MCP Streamable
+    HTTP transport spec.  If the server returns an ``Mcp-Session-Id`` response
+    header the returned dict includes it so callers can attach it to subsequent
+    requests.
+
+    Errors are silently ignored: servers that do not require initialization
+    will simply ignore or reject the request, and callers fall through to the
+    actual tool request without a session header.
+
+    Args:
+        base_url: MCP server base URL.
+        endpoint: MCP endpoint path (default ``/mcp``).
+
+    Returns:
+        Dict of extra headers to include in subsequent requests (may be empty).
+    """
+    extra = {}
+    try:
+        response = requests.post(
+            f"{base_url}{endpoint}",
+            json={
+                "jsonrpc": "2.0",
+                "method": "initialize",
+                "id": 1,
+                "params": {
+                    "protocolVersion": "2025-03-26",
+                    "capabilities": {},
+                    "clientInfo": {"name": "pytest-mcp-tools", "version": "0.1.3"},
+                },
+            },
+            headers=_MCP_HEADERS,
+            timeout=5,
+        )
+        session_id = response.headers.get("Mcp-Session-Id")
+        if session_id:
+            extra = {"Mcp-Session-Id": session_id}
+    except Exception:
+        pass
+    return extra
+
+
+def _post_tools_list(base_url, endpoint="/mcp"):
+    """Send a ``tools/list`` JSON-RPC request, initialising the session if needed.
+
+    Performs the MCP initialization handshake via :func:`_establish_session`
+    before sending the actual ``tools/list`` request so that servers
+    implementing the full MCP Streamable HTTP spec (which requires
+    ``initialize`` before any other method) are handled transparently.
+
+    Args:
+        base_url: MCP server base URL.
+        endpoint: MCP endpoint path (default ``/mcp``).
+
+    Returns:
+        Parsed JSON response dict (may be JSON or SSE-wrapped JSON).
+
+    Raises:
+        requests.exceptions.HTTPError: On non-2xx responses.
+        requests.exceptions.RequestException: On network-level errors.
+    """
+    session_extra = _establish_session(base_url, endpoint)
+    headers = {**_MCP_HEADERS, **session_extra}
+    response = requests.post(
+        f"{base_url}{endpoint}",
+        json={"jsonrpc": "2.0", "method": "tools/list", "id": 2},
+        headers=headers,
+        timeout=5,
+    )
+    response.raise_for_status()
+    return _parse_mcp_response(response)
 
 
 def validate_tools_have_names(tools):
@@ -176,29 +286,14 @@ def list_tools(base_url, endpoint="/mcp"):
     Raises:
         ValueError: If the tools list is empty or if connection fails
     """
-    # Try simple HTTP POST with JSON-RPC
     try:
-        response = requests.post(
-            f"{base_url}{endpoint}",
-            json={
-                "jsonrpc": "2.0",
-                "method": "tools/list",
-                "id": 1
-            },
-            headers={
-                "Content-Type": "application/json",
-            },
-            timeout=5
-        )
-        response.raise_for_status()
+        result = _post_tools_list(base_url, endpoint)
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
             raise ValueError(f"Endpoint {endpoint} not found (404)")
         raise ValueError(f"HTTP error: {e}")
     except requests.exceptions.RequestException as e:
         raise ValueError(f"Connection error: {e}")
-
-    result = response.json()
 
     if "result" in result and "tools" in result["result"]:
         tools = result["result"]["tools"]
@@ -277,6 +372,7 @@ def pytest_configure(config):
                         response = requests.post(
                             f"{base_url}{endpoint}",
                             json={},
+                            headers=_MCP_HEADERS,
                             timeout=2,
                             allow_redirects=False,
                         )
@@ -347,26 +443,15 @@ def pytest_configure(config):
         config._mcp_tools_tools_list = []
         if "/mcp" in endpoints_found:
             try:
-                anno_response = requests.post(
-                    f"{base_url}/mcp",
-                    json={
-                        "jsonrpc": "2.0",
-                        "method": "tools/list",
-                        "id": 1
-                    },
-                    headers={"Content-Type": "application/json"},
-                    timeout=5
-                )
-                if anno_response.status_code == 200:
-                    anno_result = anno_response.json()
-                    if (
-                        "result" in anno_result
-                        and "tools" in anno_result["result"]
-                    ):
-                        tools_list = anno_result["result"]["tools"]
-                        config._mcp_tools_tools_list = tools_list
-                        if any("annotations" in t for t in tools_list):
-                            config._mcp_tools_has_annotations = True
+                anno_result = _post_tools_list(base_url, "/mcp")
+                if (
+                    "result" in anno_result
+                    and "tools" in anno_result["result"]
+                ):
+                    tools_list = anno_result["result"]["tools"]
+                    config._mcp_tools_tools_list = tools_list
+                    if any("annotations" in t for t in tools_list):
+                        config._mcp_tools_has_annotations = True
             except Exception:
                 pass
 
@@ -531,24 +616,8 @@ def pytest_collection_modifyitems(session, config, items):
         def make_tools_have_descriptions_test(url, endpoint="/mcp"):
             def test_tools_have_descriptions():
                 """Test that all tools have description fields."""
-                tools = None
-                response = requests.post(
-                    f"{url}{endpoint}",
-                    json={
-                        "jsonrpc": "2.0",
-                        "method": "tools/list",
-                        "id": 1
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                    },
-                    timeout=5
-                )
-                response.raise_for_status()
-                result = response.json()
-
-                if "result" in result and "tools" in result["result"]:
-                    tools = result["result"]["tools"]
+                result = _post_tools_list(url, endpoint)
+                tools = result.get("result", {}).get("tools")
 
                 assert tools, "Expected non-empty tools list"
 
@@ -575,26 +644,8 @@ def pytest_collection_modifyitems(session, config, items):
         def make_tools_have_names_test(url, endpoint="/mcp"):
             def test_tools_have_names():
                 """Test that all tools have name fields."""
-                response = requests.post(
-                    f"{url}{endpoint}",
-                    json={
-                        "jsonrpc": "2.0",
-                        "method": "tools/list",
-                        "id": 1
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                    },
-                    timeout=5
-                )
-                response.raise_for_status()
-                result = response.json()
-
-                if "result" in result and "tools" in result["result"]:
-                    tools = result["result"]["tools"]
-                else:
-                    tools = []
-
+                result = _post_tools_list(url, endpoint)
+                tools = result.get("result", {}).get("tools", [])
                 validate_tools_have_names(tools)
             return test_tools_have_names
 
@@ -614,26 +665,8 @@ def pytest_collection_modifyitems(session, config, items):
         def make_tools_have_unique_names_test(url, endpoint="/mcp"):
             def test_tools_have_unique_names():
                 """Test that all tools have unique name fields."""
-                response = requests.post(
-                    f"{url}{endpoint}",
-                    json={
-                        "jsonrpc": "2.0",
-                        "method": "tools/list",
-                        "id": 1
-                    },
-                    headers={
-                        "Content-Type": "application/json",
-                    },
-                    timeout=5
-                )
-                response.raise_for_status()
-                result = response.json()
-
-                if "result" in result and "tools" in result["result"]:
-                    tools = result["result"]["tools"]
-                else:
-                    tools = []
-
+                result = _post_tools_list(url, endpoint)
+                tools = result.get("result", {}).get("tools", [])
                 validate_tools_have_unique_names(tools)
             return test_tools_have_unique_names
 
@@ -654,26 +687,8 @@ def pytest_collection_modifyitems(session, config, items):
             def make_tools_have_titles_test(url, endpoint="/mcp"):
                 def test_tools_have_titles():
                     """Test that all tools with annotations have a title field."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={
-                            "Content-Type": "application/json",
-                        },
-                        timeout=5
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-
-                    if "result" in result and "tools" in result["result"]:
-                        tools = result["result"]["tools"]
-                    else:
-                        tools = []
-
+                    result = _post_tools_list(url, endpoint)
+                    tools = result.get("result", {}).get("tools", [])
                     validate_tools_have_titles(tools)
                 return test_tools_have_titles
 
@@ -695,26 +710,8 @@ def pytest_collection_modifyitems(session, config, items):
                     Validates that readOnlyHint is not true when destructiveHint
                     or idempotentHint is true.
                     """
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={
-                            "Content-Type": "application/json",
-                        },
-                        timeout=5
-                    )
-                    response.raise_for_status()
-                    result = response.json()
-
-                    if "result" in result and "tools" in result["result"]:
-                        tools = result["result"]["tools"]
-                    else:
-                        tools = []
-
+                    result = _post_tools_list(url, endpoint)
+                    tools = result.get("result", {}).get("tools", [])
                     validate_tool_annotations_are_consistent(tools)
                 return test_tool_annotations_are_consistent
 
@@ -750,24 +747,12 @@ def pytest_collection_modifyitems(session, config, items):
             def make_tool_field_descriptions_test(url, tname, endpoint="/mcp"):
                 def test_func():
                     """Test that every inputSchema field has a description."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
+                    result = _post_tools_list(url, endpoint)
+                    current_tool = next(
+                        (t for t in result.get("result", {}).get("tools", [])
+                         if t.get("name") == tname),
+                        None,
                     )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
                     assert current_tool is not None, (
                         f"Tool '{tname}' not found in tools list"
                     )
@@ -796,24 +781,12 @@ def pytest_collection_modifyitems(session, config, items):
             def make_tool_field_types_test(url, tname, endpoint="/mcp"):
                 def test_func():
                     """Test that every inputSchema field has a valid type."""
-                    response = requests.post(
-                        f"{url}{endpoint}",
-                        json={
-                            "jsonrpc": "2.0",
-                            "method": "tools/list",
-                            "id": 1
-                        },
-                        headers={"Content-Type": "application/json"},
-                        timeout=5,
+                    result = _post_tools_list(url, endpoint)
+                    current_tool = next(
+                        (t for t in result.get("result", {}).get("tools", [])
+                         if t.get("name") == tname),
+                        None,
                     )
-                    response.raise_for_status()
-                    result = response.json()
-                    current_tool = None
-                    if "result" in result and "tools" in result["result"]:
-                        for t in result["result"]["tools"]:
-                            if t.get("name") == tname:
-                                current_tool = t
-                                break
                     assert current_tool is not None, (
                         f"Tool '{tname}' not found in tools list"
                     )
