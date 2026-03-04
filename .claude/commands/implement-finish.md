@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(docker compose *), Bash(git *), Edit, Write, Read
+allowed-tools: Bash(docker compose *), Bash(git *), Edit(!tests/**), Write(!tests/**), Read
 ---
 
 The tests have been reviewed and approved. Complete the implementation.

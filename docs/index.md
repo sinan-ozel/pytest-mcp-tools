@@ -160,6 +160,24 @@ Automatically creates tests for every HTTP server with endpoints:
 | `test_list_tools_via_stdio` | — | STDIO also available |
 | `test_tools_have_titles` | — | At least one tool has `annotations` |
 | `test_tool_annotations_are_consistent` | — | At least one tool has `annotations` |
+| `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
+| `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
+
+### inputSchema Field Validation
+
+For every tool that declares `inputSchema.properties`, the plugin generates two
+named tests (marked `mcp_tools_input_schema`):
+
+- **`test_{tool_name}_input_schema_field_descriptions`**: every property at
+  every nesting depth must carry a non-empty `description` string.
+
+- **`test_{tool_name}_input_schema_field_types`**: every property at every
+  nesting depth must have a `type` field set to one of the valid JSON Schema
+  primitive types: `string`, `number`, `integer`, `boolean`, `array`,
+  `object`, `null`.
+
+Both checks recurse into nested `properties` objects, so a missing field deep
+inside a three-level schema will still be caught.
 
 ### Annotation Validation
 

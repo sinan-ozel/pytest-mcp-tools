@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(git *), Edit, Write, Read
+allowed-tools: Bash(git *), Edit(tests/**), Write(tests/**), Read
 ---
 
 Implement tests for the following feature: $ARGUMENTS

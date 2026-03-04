@@ -784,3 +784,309 @@ def test_tool_annotations_are_consistent_fails_with_conflicting_annotations():
         flush=True,
     )
 
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_input_schema_field_descriptions_passes_with_basic_server():
+    """Test that per-tool inputSchema field description tests pass for basic server.
+
+    This test verifies that for the stream_message tool in the basic server,
+    where all inputSchema fields have descriptions, the dynamically generated
+    per-tool test test_stream_message_input_schema_field_descriptions passes.
+    """
+    print("\n🔍 Testing per-tool inputSchema field description check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool test for stream_message was created and ran
+    assert (
+        "test_stream_message_input_schema_field_descriptions" in output
+    ), f"Expected test_stream_message_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_stream_message_input_schema_field_descriptions" in output
+    ), f"Expected test_stream_message_input_schema_field_descriptions to pass, got:\n{output}"
+
+    print("✅ test_stream_message_input_schema_field_descriptions passed for basic server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_input_schema_field_descriptions_fails_without_field_descriptions():
+    """Test that per-tool inputSchema field description tests fail when fields lack descriptions.
+
+    This test verifies that for the process_data tool in the no-field-descriptions server,
+    where inputSchema properties are missing description fields, the dynamically generated
+    per-tool test test_process_data_input_schema_field_descriptions fails with a clear message.
+    """
+    print("\n🔍 Testing per-tool inputSchema field description check with no-field-descriptions server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-field-descriptions-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool test for process_data was created and ran
+    assert (
+        "test_process_data_input_schema_field_descriptions" in output
+    ), f"Expected test_process_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_process_data_input_schema_field_descriptions" in output
+    ), f"Expected test_process_data_input_schema_field_descriptions to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing description on a field
+    assert (
+        "missing description" in output.lower() or "description" in output.lower()
+    ), f"Expected failure message about missing field description, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when inputSchema field descriptions are missing, got exit code: {result.returncode}"
+
+    print("✅ test_process_data_input_schema_field_descriptions correctly failed for server with fields missing descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_input_schema_field_descriptions_passes_with_annotations_server():
+    """Test that per-tool inputSchema field description tests pass for the annotations server.
+
+    This test verifies that for the read_data tool in the annotations server,
+    where all inputSchema fields have descriptions, the dynamically generated
+    per-tool test test_read_data_input_schema_field_descriptions passes.
+    """
+    print("\n🔍 Testing per-tool inputSchema field description check with annotations server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://annotations-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool test for read_data was created and ran
+    assert (
+        "test_read_data_input_schema_field_descriptions" in output
+    ), f"Expected test_read_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_read_data_input_schema_field_descriptions" in output
+    ), f"Expected test_read_data_input_schema_field_descriptions to pass, got:\n{output}"
+
+    print("✅ test_read_data_input_schema_field_descriptions passed for annotations server", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_input_schema_field_types_passes_with_basic_server():
+    """Test that per-tool inputSchema field type tests pass for the basic server.
+
+    This test verifies that for the stream_message tool in the basic server,
+    where all inputSchema fields have valid types, the dynamically generated
+    per-tool test test_stream_message_input_schema_field_types passes.
+    """
+    print("\n🔍 Testing per-tool inputSchema field type check with basic server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool type test for stream_message was created and ran
+    assert (
+        "test_stream_message_input_schema_field_types" in output
+    ), f"Expected test_stream_message_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_stream_message_input_schema_field_types" in output
+    ), f"Expected test_stream_message_input_schema_field_types to pass, got:\n{output}"
+
+    print("✅ test_stream_message_input_schema_field_types passed for basic server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_input_schema_field_types_fails_with_invalid_field_types():
+    """Test that per-tool inputSchema field type tests fail when fields have invalid types.
+
+    This test verifies that for the transform_data tool in the invalid-field-types server,
+    where inputSchema properties have missing or non-standard type values, the dynamically
+    generated per-tool test test_transform_data_input_schema_field_types fails with a
+    clear message.
+    """
+    print("\n🔍 Testing per-tool inputSchema field type check with invalid-field-types server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://invalid-field-types-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool type test for transform_data was created and ran
+    assert (
+        "test_transform_data_input_schema_field_types" in output
+    ), f"Expected test_transform_data_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_transform_data_input_schema_field_types" in output
+    ), f"Expected test_transform_data_input_schema_field_types to fail, got:\n{output}"
+
+    # Check that the failure message mentions the type issue
+    assert (
+        "type" in output.lower()
+    ), f"Expected failure message about invalid or missing field type, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when inputSchema field types are missing or invalid, got exit code: {result.returncode}"
+
+    print("✅ test_transform_data_input_schema_field_types correctly failed for server with invalid field types", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_input_schema_field_descriptions_fails_with_deeply_nested_schema():
+    """Test that per-tool field description tests fail when the missing description is three levels deep.
+
+    This test verifies that the plugin recurses into nested inputSchema properties and
+    detects the missing description on the innermost (level 3) field of the nested_call
+    tool in the deeply-nested server.
+    """
+    print("\n🔍 Testing per-tool inputSchema field description check with deeply nested schema...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://deeply-nested-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool description test for nested_call was created and ran
+    assert (
+        "test_nested_call_input_schema_field_descriptions" in output
+    ), f"Expected test_nested_call_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed (missing description on innermost field)
+    assert (
+        "FAILED" in output and "test_nested_call_input_schema_field_descriptions" in output
+    ), f"Expected test_nested_call_input_schema_field_descriptions to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing description
+    assert (
+        "missing description" in output.lower() or "description" in output.lower()
+    ), f"Expected failure message about missing field description, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when innermost inputSchema field is missing a description, got exit code: {result.returncode}"
+
+    print("✅ test_nested_call_input_schema_field_descriptions correctly failed for deeply nested schema", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_input_schema_field_types_fails_with_deeply_nested_invalid_type():
+    """Test that per-tool field type tests fail when the invalid type is three levels deep.
+
+    This test verifies that the plugin recurses into nested inputSchema properties and
+    detects the invalid type on the innermost (level 3) field of the nested_call
+    tool in the deeply-nested-invalid-type server.
+    """
+    print("\n🔍 Testing per-tool inputSchema field type check with deeply nested invalid type...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://deeply-nested-invalid-type-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool type test for nested_call was created and ran
+    assert (
+        "test_nested_call_input_schema_field_types" in output
+    ), f"Expected test_nested_call_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed (invalid type on innermost field)
+    assert (
+        "FAILED" in output and "test_nested_call_input_schema_field_types" in output
+    ), f"Expected test_nested_call_input_schema_field_types to fail, got:\n{output}"
+
+    # Check that the failure message mentions the type issue
+    assert (
+        "type" in output.lower()
+    ), f"Expected failure message about invalid field type, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when innermost inputSchema field has an invalid type, got exit code: {result.returncode}"
+
+    print("✅ test_nested_call_input_schema_field_types correctly failed for deeply nested invalid type", flush=True)
