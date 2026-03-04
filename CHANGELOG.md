@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.4] - 2026-03-04
+
+### Removed
+- **STDIO transport support** — the plugin now only tests HTTP (`/mcp`)
+  endpoints. Servers that only respond over STDIO will no longer produce
+  passing tests; the plugin will generate a failing test when `/mcp` is
+  unreachable, which is the correct behaviour for HTTP-first servers.
+  - Removed `list_tools_stdio()` and `list_tools_stdio_subprocess()` functions
+  - Removed `stdio://` URL scheme support
+  - Removed automatic STDIO detection via `docker run -i`
+  - Removed hybrid HTTP+STDIO test generation
+  - Removed `config._mcp_tools_stdio` and related internal attributes
+
+### Changed
+- Failing test ID renamed from `test_mcp_tools[NO TRANSPORT FOUND]` to
+  `test_mcp_tools[NO ENDPOINT FOUND]` to reflect HTTP-only scope
+- Error messages updated to describe HTTP-only failure modes
+
+---
+
 ## [0.1.4] - 2026-03-01
 
 ### Added
