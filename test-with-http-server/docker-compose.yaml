@@ -8,13 +8,11 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(1); s.connect(('localhost', 8000)); s.close()"]
       interval: 5s
       timeout: 3s
       retries: 20
-      start_period: 5s
-    stdin_open: true
-    tty: true
+      start_period: 10s
     ports:
       - "8000:8000"
 
@@ -31,9 +29,6 @@ services:
     environment:
       - DOCKERHUB_IMAGE=${DOCKERHUB_IMAGE}
       - PYTEST_ARGS=${PYTEST_ARGS}
-    volumes:
-      # Mount Docker socket for STDIO support
-      - /var/run/docker.sock:/var/run/docker.sock:ro
     command: pytest --mcp-tools=http://docker-image:8000 ${PYTEST_ARGS}
 
 networks:
