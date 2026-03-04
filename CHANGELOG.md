@@ -6,9 +6,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.1.4] - 2026-03-01
+## [0.1.4] - 2026-03-04
 
 ### Added
+- `outputSchema` field validation for MCP tools:
+  - Per-tool `test_{tool}_output_schema_field_descriptions` — checks every
+    `outputSchema` property (recursively) has a non-empty `description`
+  - Per-tool `test_{tool}_output_schema_field_types` — checks every
+    `outputSchema` property has a valid JSON Schema primitive `type`
+  - Both tests are generated only when a tool declares `outputSchema.properties`;
+    `outputSchema` is optional and its absence is not flagged by default
+  - New `--mcp-tools-enforce-output-schema` CLI flag: when set, generates a
+    failing `test_{tool}_output_schema_present` for every tool missing an
+    `outputSchema`
+- Three new mock servers for `outputSchema` testing:
+  - `output_schema_server` — tool with a well-formed `outputSchema`
+  - `output_schema_no_descriptions_server` — tool whose `outputSchema` fields
+    lack `description`
+  - `output_schema_invalid_types_server` — tool whose `outputSchema` fields
+    use invalid or missing `type`
+- Integration tests covering all `outputSchema` validation scenarios:
+  - `test_output_schema_field_descriptions_passes_with_output_schema_server`
+  - `test_output_schema_field_types_passes_with_output_schema_server`
+  - `test_output_schema_field_descriptions_fails_without_descriptions`
+  - `test_output_schema_field_types_fails_with_invalid_types`
+  - `test_output_schema_not_enforced_by_default`
+  - `test_output_schema_enforced_with_flag_fails`
+- `inputSchema` field validation for MCP tools (per-tool, recursive):
+  - Per-tool `test_{tool}_input_schema_field_descriptions`
+  - Per-tool `test_{tool}_input_schema_field_types`
+  - New marker `mcp_tools_input_schema` for these tests (excluded from the
+    `created N tests` count for backward compatibility)
+  - New marker `mcp_tools_output_schema` for `outputSchema` tests
+- New mock servers for `inputSchema` testing:
+  - `no_field_descriptions_server`, `invalid_field_types_server`,
+    `deeply_nested_server`, `deeply_nested_invalid_type_server`
 - Annotation validation for MCP tools:
   - `validate_tools_have_titles()` — checks that every tool with an
     `annotations` field includes a non-empty `title`

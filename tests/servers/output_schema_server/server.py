@@ -1,0 +1,63 @@
+"""MCP test server with a tool that has a well-formed outputSchema."""
+
+from starlette.applications import Starlette
+from starlette.responses import JSONResponse
+from starlette.routing import Route
+
+
+async def health(request):
+    return JSONResponse({"status": "ok"})
+
+
+async def list_tools_endpoint(request):
+    """Handle plain JSON-RPC tools/list requests for testing."""
+    try:
+        body = await request.json()
+        if body.get("method") == "tools/list":
+            tools = [
+                {
+                    "name": "fetch_data",
+                    "description": "Fetch data from the store.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "key": {
+                                "type": "string",
+                                "description": "The key to fetch"
+                            }
+                        },
+                        "required": ["key"]
+                    },
+                    "outputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "value": {
+                                "type": "string",
+                                "description": "The fetched value"
+                            },
+                            "timestamp": {
+                                "type": "number",
+                                "description": "Unix timestamp when the value was fetched"
+                            }
+                        }
+                    }
+                }
+            ]
+            return JSONResponse({
+                "jsonrpc": "2.0",
+                "id": body.get("id", 1),
+                "result": {"tools": tools}
+            })
+    except Exception:
+        pass
+
+    return JSONResponse(
+        {"jsonrpc": "2.0", "error": {"code": -32600, "message": "Invalid Request"}},
+        status_code=400
+    )
+
+
+app = Starlette(routes=[
+    Route('/health', health, methods=['GET']),
+    Route('/mcp', list_tools_endpoint, methods=['POST']),
+])

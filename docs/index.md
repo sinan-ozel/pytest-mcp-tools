@@ -162,6 +162,9 @@ Automatically creates tests for every HTTP server with endpoints:
 | `test_tool_annotations_are_consistent` | — | At least one tool has `annotations` |
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
+| `test_{tool}_output_schema_field_descriptions` | — | Per tool: tool has `outputSchema.properties` |
+| `test_{tool}_output_schema_field_types` | — | Per tool: tool has `outputSchema.properties` |
+| `test_{tool}_output_schema_present` | — | Per tool: `--mcp-tools-enforce-output-schema` set and tool has no `outputSchema` |
 
 ### inputSchema Field Validation
 
@@ -178,6 +181,34 @@ named tests (marked `mcp_tools_input_schema`):
 
 Both checks recurse into nested `properties` objects, so a missing field deep
 inside a three-level schema will still be caught.
+
+### outputSchema Field Validation
+
+`outputSchema` is optional in MCP. The plugin handles it as follows:
+
+- If a tool declares `outputSchema.properties`, the plugin generates two tests
+  (marked `mcp_tools_output_schema`):
+
+  - **`test_{tool_name}_output_schema_field_descriptions`**: every property at
+    every nesting depth must carry a non-empty `description` string.
+
+  - **`test_{tool_name}_output_schema_field_types`**: every property at every
+    nesting depth must have a valid JSON Schema `type`.
+
+- If a tool has **no** `outputSchema` and `--mcp-tools-enforce-output-schema`
+  is **not** set, no test is generated (the absence is silently accepted).
+
+- If `--mcp-tools-enforce-output-schema` **is** set, the plugin generates a
+  failing test **`test_{tool_name}_output_schema_present`** for every tool
+  that lacks an `outputSchema`.
+
+#### Enforce flag
+
+```bash
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-enforce-output-schema
+```
+
+Use this flag to require every tool to document its return schema.
 
 ### Annotation Validation
 

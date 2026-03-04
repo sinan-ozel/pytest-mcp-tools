@@ -249,6 +249,63 @@ services:
       retries: 20
       start_period: 5s
 
+  output-schema-server:
+    build:
+      context: servers/output_schema_server
+      dockerfile: Dockerfile
+    image: output-schema-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  output-schema-no-descriptions-server:
+    build:
+      context: servers/output_schema_no_descriptions_server
+      dockerfile: Dockerfile
+    image: output-schema-no-descriptions-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  output-schema-invalid-types-server:
+    build:
+      context: servers/output_schema_invalid_types_server
+      dockerfile: Dockerfile
+    image: output-schema-invalid-types-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -282,6 +339,12 @@ services:
       deeply-nested-server:
         condition: service_healthy
       deeply-nested-invalid-type-server:
+        condition: service_healthy
+      output-schema-server:
+        condition: service_healthy
+      output-schema-no-descriptions-server:
+        condition: service_healthy
+      output-schema-invalid-types-server:
         condition: service_healthy
     networks:
       - testnet

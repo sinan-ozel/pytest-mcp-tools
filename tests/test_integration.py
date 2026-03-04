@@ -1090,3 +1090,263 @@ def test_input_schema_field_types_fails_with_deeply_nested_invalid_type():
     ), f"Expected pytest to fail when innermost inputSchema field has an invalid type, got exit code: {result.returncode}"
 
     print("✅ test_nested_call_input_schema_field_types correctly failed for deeply nested invalid type", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_output_schema_field_descriptions_passes_with_output_schema_server():
+    """Test that per-tool outputSchema field description tests pass when fields have descriptions.
+
+    This test verifies that for the fetch_data tool in the output-schema server,
+    where all outputSchema fields have descriptions, the dynamically generated
+    per-tool test test_fetch_data_output_schema_field_descriptions passes.
+    """
+    print("\n🔍 Testing per-tool outputSchema field description check with output-schema server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://output-schema-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool outputSchema description test for fetch_data was created and ran
+    assert (
+        "test_fetch_data_output_schema_field_descriptions" in output
+    ), f"Expected test_fetch_data_output_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_fetch_data_output_schema_field_descriptions" in output
+    ), f"Expected test_fetch_data_output_schema_field_descriptions to pass, got:\n{output}"
+
+    print("✅ test_fetch_data_output_schema_field_descriptions passed for output-schema server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_output_schema_field_types_passes_with_output_schema_server():
+    """Test that per-tool outputSchema field type tests pass when fields have valid types.
+
+    This test verifies that for the fetch_data tool in the output-schema server,
+    where all outputSchema fields have valid types, the dynamically generated
+    per-tool test test_fetch_data_output_schema_field_types passes.
+    """
+    print("\n🔍 Testing per-tool outputSchema field type check with output-schema server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://output-schema-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool outputSchema type test for fetch_data was created and ran
+    assert (
+        "test_fetch_data_output_schema_field_types" in output
+    ), f"Expected test_fetch_data_output_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test passed
+    assert (
+        "PASSED" in output and "test_fetch_data_output_schema_field_types" in output
+    ), f"Expected test_fetch_data_output_schema_field_types to pass, got:\n{output}"
+
+    print("✅ test_fetch_data_output_schema_field_types passed for output-schema server", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_output_schema_field_descriptions_fails_without_descriptions():
+    """Test that per-tool outputSchema field description tests fail when fields lack descriptions.
+
+    This test verifies that for the analyze_data tool in the output-schema-no-descriptions
+    server, where outputSchema fields are missing descriptions, the dynamically generated
+    per-tool test test_analyze_data_output_schema_field_descriptions fails.
+    """
+    print("\n🔍 Testing per-tool outputSchema field description check with no-descriptions server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://output-schema-no-descriptions-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool outputSchema description test for analyze_data was created and ran
+    assert (
+        "test_analyze_data_output_schema_field_descriptions" in output
+    ), f"Expected test_analyze_data_output_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_analyze_data_output_schema_field_descriptions" in output
+    ), f"Expected test_analyze_data_output_schema_field_descriptions to fail, got:\n{output}"
+
+    # Check that the failure message mentions missing description
+    assert (
+        "missing description" in output.lower() or "description" in output.lower()
+    ), f"Expected failure message about missing field description, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when outputSchema field descriptions are missing, got exit code: {result.returncode}"
+
+    print("✅ test_analyze_data_output_schema_field_descriptions correctly failed for server with missing descriptions", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_output_schema_field_types_fails_with_invalid_types():
+    """Test that per-tool outputSchema field type tests fail when fields have invalid types.
+
+    This test verifies that for the transform_result tool in the output-schema-invalid-types
+    server, where outputSchema fields have invalid or missing types, the dynamically generated
+    per-tool test test_transform_result_output_schema_field_types fails.
+    """
+    print("\n🔍 Testing per-tool outputSchema field type check with invalid-types server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://output-schema-invalid-types-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a per-tool outputSchema type test for transform_result was created and ran
+    assert (
+        "test_transform_result_output_schema_field_types" in output
+    ), f"Expected test_transform_result_output_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_transform_result_output_schema_field_types" in output
+    ), f"Expected test_transform_result_output_schema_field_types to fail, got:\n{output}"
+
+    # Check that the failure message mentions the type issue
+    assert (
+        "type" in output.lower()
+    ), f"Expected failure message about invalid or missing field type, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when outputSchema field types are invalid, got exit code: {result.returncode}"
+
+    print("✅ test_transform_result_output_schema_field_types correctly failed for server with invalid types", flush=True)
+
+
+@pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
+def test_output_schema_not_enforced_by_default():
+    """Test that missing outputSchema does not cause a failure without the enforce flag.
+
+    This test verifies that when --mcp-tools-enforce-output-schema is NOT passed,
+    tools without an outputSchema do not generate a failing test. The basic server's
+    stream_message tool has no outputSchema, so no output schema test should be generated.
+    """
+    print("\n🔍 Testing that missing outputSchema is allowed without enforce flag...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://basic-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that no output schema presence test was generated for stream_message
+    assert (
+        "test_stream_message_output_schema_present" not in output
+    ), f"Expected no test_stream_message_output_schema_present in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that pytest exited successfully (missing outputSchema is not an error by default)
+    assert (
+        result.returncode == 0
+    ), f"Expected pytest to pass when outputSchema is absent and enforce flag is not set, got exit code: {result.returncode}"
+
+    print("✅ Missing outputSchema does not cause failure without --mcp-tools-enforce-output-schema", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_output_schema_enforced_with_flag_fails():
+    """Test that missing outputSchema causes a failure when --mcp-tools-enforce-output-schema is set.
+
+    This test verifies that when --mcp-tools-enforce-output-schema is passed,
+    tools without an outputSchema generate a failing test. The basic server's
+    stream_message tool has no outputSchema, so test_stream_message_output_schema_present
+    should be generated and fail.
+    """
+    print("\n🔍 Testing that missing outputSchema fails when enforce flag is set...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://basic-server:8000",
+            "--mcp-tools-enforce-output-schema",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    # Debug: print both stdout and stderr
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Check that a presence test for stream_message was generated
+    assert (
+        "test_stream_message_output_schema_present" in output
+    ), f"Expected test_stream_message_output_schema_present in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # Check that the test failed
+    assert (
+        "FAILED" in output and "test_stream_message_output_schema_present" in output
+    ), f"Expected test_stream_message_output_schema_present to fail, got:\n{output}"
+
+    # Check that pytest exited with error code
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when outputSchema is missing and enforce flag is set, got exit code: {result.returncode}"
+
+    print("✅ test_stream_message_output_schema_present correctly failed when enforce flag is set", flush=True)
