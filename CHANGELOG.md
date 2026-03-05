@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.1.6] - 2026-03-04
+## [0.1.4] - 2026-03-04
 
 ### Added
 - **`--mcp-tools-strict` CLI flag** — when set, generates two per-tool compliance
@@ -17,11 +17,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   are compliant, fails when a tool is missing examples, fails when a tool is
   missing `outputSchema`. No new mock servers were added; existing
   `read_only_examples_server`, `basic_server`, and `examples_server` are reused.
-- **Docs updated** with new table rows and a "Strict Mode" section.
-
-## [0.1.5] - 2026-03-04
-
-### Added
 - **Example-based live call tests** — for every tool that declares an `examples`
   list, the plugin now generates one test per example (marked `mcp_tools_examples`).
   Each test calls the tool via `tools/call` with the example input, asserts no
@@ -45,10 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `read_only_examples_server` — mixed `readOnlyHint` tools for verifying
     production/read-only filter behaviour
 - **Five new integration tests** covering the above scenarios.
-- **Docs updated** with new table rows, a dedicated "Example-Based Live Call
-  Tests" section, and flag descriptions.
-
-## [0.1.4] - 2026-03-04
 
 ### Removed
 - **STDIO transport support** — the plugin now only tests HTTP (`/mcp`)
