@@ -184,6 +184,7 @@ jobs:
     if: needs.detect-changes.outputs.changed == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.event.pull_request.merged == true)  # Only run on push to main or merge to main
     outputs:
       is_stable: ${{ steps.set-version.outputs.is_stable }}
+      version: ${{ steps.set-version.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
