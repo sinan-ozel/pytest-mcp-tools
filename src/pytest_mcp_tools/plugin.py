@@ -1,6 +1,7 @@
 """Pytest plugin for MCP tools testing."""
 
 import json
+import re
 import time
 
 import pytest
@@ -199,6 +200,74 @@ def collect_output_schema_type_mismatches(content, properties, path=""):
                 collect_output_schema_type_mismatches(actual_value, nested, field_path)
             )
     return mismatches
+
+
+_FORMAT_VALIDATORS = {
+    "email": re.compile(r"^[^@]+@[^@]+\.[^@]+$"),
+    "uri": re.compile(r"^[a-zA-Z][a-zA-Z0-9+\-.]*://"),
+    "date": re.compile(r"^\d{4}-\d{2}-\d{2}$"),
+    "date-time": re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"),
+    "time": re.compile(r"^\d{2}:\d{2}:\d{2}"),
+}
+
+
+def collect_example_input_violations(example_input, input_schema):
+    """Validate an example input dict against the tool's inputSchema.
+
+    Checks that all required fields are present, all provided field values
+    match their declared JSON Schema type, and all string values with a
+    ``format`` keyword match the expected pattern.
+
+    Args:
+        example_input: The ``input`` dict from a tool example.
+        input_schema: The tool's ``inputSchema`` dict (JSON Schema object).
+
+    Returns:
+        List of human-readable violation strings.  Empty list means valid.
+    """
+    violations = []
+    if not isinstance(input_schema, dict):
+        return violations
+
+    properties = input_schema.get("properties", {})
+    required = input_schema.get("required", [])
+
+    # Check required fields are present
+    for field in required:
+        if field not in example_input:
+            violations.append(f"missing required field '{field}'")
+
+    # Check types and formats for fields that are present
+    for field_name, value in example_input.items():
+        field_schema = properties.get(field_name)
+        if not field_schema:
+            continue
+
+        declared_type = field_schema.get("type")
+        if declared_type is not None:
+            expected_python = _JSON_SCHEMA_TYPE_TO_PYTHON.get(declared_type)
+            if expected_python is not None:
+                if declared_type in ("number", "integer") and isinstance(value, bool):
+                    violations.append(
+                        f"field '{field_name}' declared as type '{declared_type}'"
+                        f" but got bool"
+                    )
+                elif not isinstance(value, expected_python):
+                    violations.append(
+                        f"field '{field_name}' declared as type '{declared_type}'"
+                        f" but got {type(value).__name__}"
+                    )
+
+        declared_format = field_schema.get("format")
+        if declared_format is not None and isinstance(value, str):
+            pattern = _FORMAT_VALIDATORS.get(declared_format)
+            if pattern is not None and not pattern.match(value):
+                violations.append(
+                    f"field '{field_name}' declared with format '{declared_format}'"
+                    f" but value {value!r} does not match"
+                )
+
+    return violations
 
 
 def validate_tools_have_names(tools):
@@ -963,9 +1032,15 @@ def pytest_collection_modifyitems(session, config, items):
                 example_input = example.get("input", {})
                 test_name = f"test_{safe_name}_example_{idx}"
 
-                def make_example_test(url, tname, args, out_props, endpoint="/mcp"):
+                def make_example_test(url, tname, args, out_props, schema, endpoint="/mcp"):
                     def test_func():
                         """Call tool with example input; validate output against outputSchema."""
+                        violations = collect_example_input_violations(args, schema)
+                        if violations:
+                            assert False, (
+                                f"Tool '{tname}' example has invalid input: "
+                                + "; ".join(violations)
+                            )
                         result = _post_tools_call(url, tname, args, endpoint)
                         assert "error" not in result, (
                             f"Tool '{tname}' call returned JSON-RPC error: "
@@ -995,7 +1070,8 @@ def pytest_collection_modifyitems(session, config, items):
                     return test_func
 
                 example_func = make_example_test(
-                    base_url, tool_name, example_input, output_properties
+                    base_url, tool_name, example_input, output_properties,
+                    tool.get("inputSchema", {}),
                 )
                 example_func.__name__ = test_name
                 example_item = pytest.Function.from_parent(

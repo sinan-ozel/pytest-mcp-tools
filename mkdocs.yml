@@ -1,10 +1,10 @@
-site_name: <MODULE-NAME>
-site_description: ...
-site_author: <AUTHOR-NAME>
-site_url: https://<ORGANIZATION>.github.io/<MODULE-NAME>/
+site_name: pytest-mcp-tools
+site_description: A pytest plugin for automatically testing MCP (Model Context Protocol) tool servers.
+site_author: Sinan Ozel
+site_url: https://sinan-ozel.github.io/pytest-mcp-tools/
 
-repo_name: <ORGANIZATION>/<MODULE-NAME>
-repo_url: https://github.com/<ORGANIZATION>/<MODULE-NAME>
+repo_name: sinan-ozel/pytest-mcp-tools
+repo_url: https://github.com/sinan-ozel/pytest-mcp-tools
 
 theme:
   name: material

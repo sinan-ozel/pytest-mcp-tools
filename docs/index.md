@@ -145,9 +145,18 @@ pytest --mcp-tools=http://localhost:8000 --mcp-tools-read-only
 
 Each generated test (named `test_{tool_name}_example_{n}`) does the following:
 
-1. Calls the tool via `tools/call` using the example's `input` as arguments.
-2. Asserts the response contains no JSON-RPC error.
-3. If the tool declares an `outputSchema`, validates that every field in
+1. **Validates the example input** against the tool's `inputSchema` before
+   making any network call:
+   - All fields listed in `inputSchema.required` must be present in the example.
+   - Each provided field value must match the declared JSON Schema `type`
+     (`string`, `integer`, `number`, `boolean`, `array`, `object`, `null`).
+   - Each string field with a `format` keyword (`email`, `uri`, `date`,
+     `date-time`, `time`) must match the expected pattern.
+   - The test fails immediately with a descriptive message if any violation is
+     found, without ever calling the server.
+2. Calls the tool via `tools/call` using the example's `input` as arguments.
+3. Asserts the response contains no JSON-RPC error.
+4. If the tool declares an `outputSchema`, validates that every field in
    `structuredContent` matches the declared JSON Schema type.
 
 **`--mcp-tools-production` / `--mcp-tools-read-only`** (aliases, default `false`)

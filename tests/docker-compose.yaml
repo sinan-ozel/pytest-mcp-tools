@@ -306,6 +306,63 @@ services:
       retries: 20
       start_period: 5s
 
+  example-missing-required-server:
+    build:
+      context: servers/example_missing_required_server
+      dockerfile: Dockerfile
+    image: example-missing-required-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  example-wrong-type-server:
+    build:
+      context: servers/example_wrong_type_server
+      dockerfile: Dockerfile
+    image: example-wrong-type-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  example-wrong-format-server:
+    build:
+      context: servers/example_wrong_format_server
+      dockerfile: Dockerfile
+    image: example-wrong-format-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -345,6 +402,12 @@ services:
       output-schema-type-error-server:
         condition: service_healthy
       read-only-examples-server:
+        condition: service_healthy
+      example-missing-required-server:
+        condition: service_healthy
+      example-wrong-type-server:
+        condition: service_healthy
+      example-wrong-format-server:
         condition: service_healthy
     networks:
       - testnet
