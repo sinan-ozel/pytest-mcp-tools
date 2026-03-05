@@ -53,9 +53,15 @@ created 6 tests
 ============================== 6 passed in 2.62s ===============================
 ```
 
-## Features
+# Reporting Issues
+If you tested this on your server, and think that there is an issue, just give me the docker image of your server in the issue, and tell me what you are expecting, what you got.
 
-### Automated Tests
+If you don't have a docker hub image, give me a minimal example. That's all I need.
+
+
+# Features
+
+## Automated Tests
 The plugin generates tests to verify:
 - At least one transport is available (HTTP or STDIO)
 - Tools can be listed successfully
@@ -68,11 +74,6 @@ Later versions will include:
 - LLM-as-a-Judge checks to validate description quality
 - oAuth and perhaps CORS, as needed. (This is not strictly necessary, because I am imagining that this is going run as a staging test in an environment where all servers are trusted.)
 
-
-# Reporting Issues
-If you tested this on your server, and think that there is an issue, just give me the docker image of your server in the issue, and tell me what you are expecting, what you got.
-
-If you don't have a docker hub image, give me a minimal example. That's all I need.
 
 # 🛠️ Development
 
