@@ -417,6 +417,15 @@ def pytest_addoption(parser):
             "readOnlyHint=True. Alias of --mcp-tools-production."
         ),
     )
+    group.addoption(
+        "--mcp-tools-strict",
+        action="store_true",
+        default=False,
+        help=(
+            "When set, generate failing tests for any tool that lacks "
+            "examples or outputSchema."
+        ),
+    )
 
 
 def pytest_configure(config):
@@ -432,6 +441,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "mcp_tools_examples: MCP tools per-tool example call tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "mcp_tools_strict: MCP tools strict-mode compliance tests",
     )
 
     # If --mcp-tools flag is provided, discover endpoints
@@ -992,6 +1005,80 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 example_item.add_marker(pytest.mark.mcp_tools_examples)
                 test_items.append(example_item)
+
+        # --- strict-mode compliance tests ---
+        # When --mcp-tools-strict is set, generate per-tool tests that fail
+        # if any tool is missing examples or outputSchema.
+        if config.getoption("--mcp-tools-strict", default=False):
+            for tool in tools_list:
+                tool_name = tool.get("name", "")
+                if not tool_name:
+                    continue
+                safe_name = tool_name.replace("-", "_").replace(" ", "_")
+
+                # --- has_examples test ---
+                def make_has_examples_test(tname):
+                    def test_func():
+                        """Fail if the tool declares no examples."""
+                        assert False, (
+                            f"Tool '{tname}' has no examples. "
+                            "Add at least one entry to the 'examples' list."
+                        )
+                    return test_func
+
+                def make_has_examples_pass(tname):
+                    def test_func():
+                        """Pass: the tool declares at least one example."""
+                        pass
+                    return test_func
+
+                has_examples = bool(tool.get("examples"))
+                examples_test_name = f"test_{safe_name}_has_examples"
+                examples_func = (
+                    make_has_examples_pass(tool_name)
+                    if has_examples
+                    else make_has_examples_test(tool_name)
+                )
+                examples_func.__name__ = examples_test_name
+                examples_item = pytest.Function.from_parent(
+                    module,
+                    name=examples_test_name,
+                    callobj=examples_func,
+                )
+                examples_item.add_marker(pytest.mark.mcp_tools_strict)
+                test_items.append(examples_item)
+
+                # --- has_output_schema test ---
+                def make_has_output_schema_test(tname):
+                    def test_func():
+                        """Fail if the tool declares no outputSchema."""
+                        assert False, (
+                            f"Tool '{tname}' has no outputSchema. "
+                            "Add an 'outputSchema' object to the tool definition."
+                        )
+                    return test_func
+
+                def make_has_output_schema_pass(tname):
+                    def test_func():
+                        """Pass: the tool declares an outputSchema."""
+                        pass
+                    return test_func
+
+                has_output_schema = bool(tool.get("outputSchema"))
+                schema_test_name = f"test_{safe_name}_has_output_schema"
+                schema_func = (
+                    make_has_output_schema_pass(tool_name)
+                    if has_output_schema
+                    else make_has_output_schema_test(tool_name)
+                )
+                schema_func.__name__ = schema_test_name
+                schema_item = pytest.Function.from_parent(
+                    module,
+                    name=schema_test_name,
+                    callobj=schema_func,
+                )
+                schema_item.add_marker(pytest.mark.mcp_tools_strict)
+                test_items.append(schema_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)

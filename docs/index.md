@@ -126,6 +126,8 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_example_{n}` | — | Per tool per example: tool has `examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
+| `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `examples` |
+| `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
 
 ### Example-Based Live Call Tests
 
@@ -177,6 +179,22 @@ Example tool definition with examples and outputSchema:
 This would generate `test_get_greeting_example_0` and
 `test_get_greeting_example_1`, each calling the tool and verifying the
 `greeting` field in `structuredContent` is a string.
+
+### Strict Mode
+
+`--mcp-tools-strict` (default `false`) generates two compliance tests per tool:
+
+- **`test_{tool_name}_has_examples`** — passes if the tool declares at least one
+  entry in its `examples` list; fails otherwise.
+- **`test_{tool_name}_has_output_schema`** — passes if the tool declares an
+  `outputSchema` object; fails otherwise.
+
+```bash
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-strict
+```
+
+Use this flag to enforce that every tool in your server is fully documented
+with call examples and a structured output schema.
 
 ### inputSchema Field Validation
 

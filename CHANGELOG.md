@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.6] - 2026-03-04
+
+### Added
+- **`--mcp-tools-strict` CLI flag** — when set, generates two per-tool compliance
+  tests (marked `mcp_tools_strict`) for every tool in the server:
+  - `test_{tool}_has_examples`: fails if the tool has no `examples` list.
+  - `test_{tool}_has_output_schema`: fails if the tool has no `outputSchema`.
+- **Three new integration tests** covering strict mode: passes when all tools
+  are compliant, fails when a tool is missing examples, fails when a tool is
+  missing `outputSchema`. No new mock servers were added; existing
+  `read_only_examples_server`, `basic_server`, and `examples_server` are reused.
+- **Docs updated** with new table rows and a "Strict Mode" section.
+
 ## [0.1.5] - 2026-03-04
 
 ### Added
