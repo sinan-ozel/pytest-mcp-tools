@@ -7,7 +7,6 @@ import pytest
 import requests
 from _pytest.python import Module
 
-
 _MCP_HEADERS = {
     "Content-Type": "application/json",
     "Accept": "application/json, text/event-stream",
@@ -115,6 +114,91 @@ def _post_tools_list(base_url, endpoint="/mcp"):
     )
     response.raise_for_status()
     return _parse_mcp_response(response)
+
+
+def _post_tools_call(base_url, tool_name, arguments, endpoint="/mcp"):
+    """Call a tool via ``tools/call`` JSON-RPC and return the parsed response.
+
+    Performs the MCP initialization handshake (via :func:`_establish_session`)
+    before sending the ``tools/call`` request.
+
+    Args:
+        base_url: MCP server base URL.
+        tool_name: Name of the tool to call.
+        arguments: Dict of arguments to pass to the tool.
+        endpoint: MCP endpoint path (default ``/mcp``).
+
+    Returns:
+        Parsed JSON response dict.
+
+    Raises:
+        requests.exceptions.HTTPError: On non-2xx responses.
+        requests.exceptions.RequestException: On network-level errors.
+    """
+    session_extra = _establish_session(base_url, endpoint)
+    headers = {**_MCP_HEADERS, **session_extra}
+    response = requests.post(
+        f"{base_url}{endpoint}",
+        json={
+            "jsonrpc": "2.0",
+            "method": "tools/call",
+            "id": 3,
+            "params": {"name": tool_name, "arguments": arguments},
+        },
+        headers=headers,
+        timeout=10,
+    )
+    response.raise_for_status()
+    return _parse_mcp_response(response)
+
+
+_JSON_SCHEMA_TYPE_TO_PYTHON = {
+    "string": str,
+    "number": (int, float),
+    "integer": int,
+    "boolean": bool,
+    "array": list,
+    "object": dict,
+    "null": type(None),
+}
+
+
+def collect_output_schema_type_mismatches(content, properties, path=""):
+    """Recursively collect fields where runtime value type mismatches outputSchema.
+
+    Args:
+        content: The ``structuredContent`` dict from a ``tools/call`` response.
+        properties: The ``properties`` dict from the tool's ``outputSchema``.
+        path: Dot-separated path prefix for nested fields (used in recursion).
+
+    Returns:
+        List of (field_path, declared_type, actual_python_type) tuples where
+        the actual value's type does not match the declared JSON Schema type.
+    """
+    mismatches = []
+    for field_name, field_schema in properties.items():
+        field_path = f"{path}.{field_name}" if path else field_name
+        declared_type = field_schema.get("type")
+        if declared_type is None or field_name not in content:
+            continue
+        actual_value = content[field_name]
+        expected_python = _JSON_SCHEMA_TYPE_TO_PYTHON.get(declared_type)
+        if expected_python is not None:
+            # bool is a subclass of int in Python; treat booleans as non-numeric
+            if declared_type in ("number", "integer") and isinstance(actual_value, bool):
+                mismatches.append(
+                    (field_path, declared_type, type(actual_value).__name__)
+                )
+            elif not isinstance(actual_value, expected_python):
+                mismatches.append(
+                    (field_path, declared_type, type(actual_value).__name__)
+                )
+        nested = field_schema.get("properties")
+        if nested and isinstance(actual_value, dict):
+            mismatches.extend(
+                collect_output_schema_type_mismatches(actual_value, nested, field_path)
+            )
+    return mismatches
 
 
 def validate_tools_have_names(tools):
@@ -315,6 +399,24 @@ def pytest_addoption(parser):
         metavar="BASE_URL",
         help="Run MCP tools tests against the specified base URL.",
     )
+    group.addoption(
+        "--mcp-tools-production",
+        action="store_true",
+        default=False,
+        help=(
+            "When set, only generate example tests for tools with "
+            "readOnlyHint=True. Alias of --mcp-tools-read-only."
+        ),
+    )
+    group.addoption(
+        "--mcp-tools-read-only",
+        action="store_true",
+        default=False,
+        help=(
+            "When set, only generate example tests for tools with "
+            "readOnlyHint=True. Alias of --mcp-tools-production."
+        ),
+    )
 
 
 def pytest_configure(config):
@@ -326,6 +428,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "mcp_tools_input_schema: MCP tools per-tool inputSchema field validation tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "mcp_tools_examples: MCP tools per-tool example call tests",
     )
 
     # If --mcp-tools flag is provided, discover endpoints
@@ -815,6 +921,77 @@ def pytest_collection_modifyitems(session, config, items):
             )
             type_item.add_marker(pytest.mark.mcp_tools_input_schema)
             test_items.append(type_item)
+
+        # --- per-tool example tests ---
+        # Generate one test per example per tool, filtered by readOnlyHint when
+        # --mcp-tools-production or --mcp-tools-read-only is set.
+        read_only_only = config.getoption(
+            "--mcp-tools-production", default=False
+        ) or config.getoption("--mcp-tools-read-only", default=False)
+
+        for tool in tools_list:
+            tool_name = tool.get("name", "")
+            if not tool_name:
+                continue
+            examples = tool.get("examples", [])
+            if not examples:
+                continue
+
+            if read_only_only:
+                annotations = tool.get("annotations", {}) or {}
+                if not annotations.get("readOnlyHint", False):
+                    continue
+
+            output_schema = tool.get("outputSchema") or {}
+            output_properties = output_schema.get("properties", {})
+            safe_name = tool_name.replace("-", "_").replace(" ", "_")
+
+            for idx, example in enumerate(examples):
+                example_input = example.get("input", {})
+                test_name = f"test_{safe_name}_example_{idx}"
+
+                def make_example_test(url, tname, args, out_props, endpoint="/mcp"):
+                    def test_func():
+                        """Call tool with example input; validate output against outputSchema."""
+                        result = _post_tools_call(url, tname, args, endpoint)
+                        assert "error" not in result, (
+                            f"Tool '{tname}' call returned JSON-RPC error: "
+                            f"{result.get('error')}"
+                        )
+                        tool_result = result.get("result", {})
+                        assert "error" not in tool_result, (
+                            f"Tool '{tname}' result contains error: "
+                            f"{tool_result.get('error')}"
+                        )
+                        if out_props:
+                            structured = tool_result.get("structuredContent")
+                            if structured is not None:
+                                mismatches = collect_output_schema_type_mismatches(
+                                    structured, out_props
+                                )
+                                if mismatches:
+                                    details = "; ".join(
+                                        f"'{p}' declared as {declared} "
+                                        f"but got {actual}"
+                                        for p, declared, actual in mismatches
+                                    )
+                                    assert False, (
+                                        f"Tool '{tname}' structuredContent type "
+                                        f"mismatches outputSchema: {details}"
+                                    )
+                    return test_func
+
+                example_func = make_example_test(
+                    base_url, tool_name, example_input, output_properties
+                )
+                example_func.__name__ = test_name
+                example_item = pytest.Function.from_parent(
+                    module,
+                    name=test_name,
+                    callobj=example_func,
+                )
+                example_item.add_marker(pytest.mark.mcp_tools_examples)
+                test_items.append(example_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)

@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.5] - 2026-03-04
+
+### Added
+- **Example-based live call tests** — for every tool that declares an `examples`
+  list, the plugin now generates one test per example (marked `mcp_tools_examples`).
+  Each test calls the tool via `tools/call` with the example input, asserts no
+  JSON-RPC error, and — when the tool has an `outputSchema` — validates that
+  every field in `structuredContent` matches the declared JSON Schema type.
+  Generated tests are named `test_{tool_name}_example_{n}` (0-based index).
+- **`--mcp-tools-production` CLI flag** — when set, example tests are only
+  generated for tools where `annotations.readOnlyHint` is `true`. Useful for
+  safe smoke tests against live production or staging environments.
+- **`--mcp-tools-read-only` CLI flag** — alias for `--mcp-tools-production`,
+  providing the same read-only filtering behaviour.
+- **`collect_output_schema_type_mismatches()` helper** — validates that
+  `structuredContent` values match their declared `outputSchema` types,
+  recursing into nested `properties` objects.
+- **`_post_tools_call()` helper** — sends a `tools/call` JSON-RPC request with
+  session initialisation support (MCP Streamable HTTP spec 2025-03-26).
+- **Three new test servers** added to the integration test suite:
+  - `examples_server` — tools with `examples` and `outputSchema` (happy path)
+  - `output_schema_type_error_server` — tool returns wrong type for
+    `outputSchema`-declared field (expected failure)
+  - `read_only_examples_server` — mixed `readOnlyHint` tools for verifying
+    production/read-only filter behaviour
+- **Five new integration tests** covering the above scenarios.
+- **Docs updated** with new table rows, a dedicated "Example-Based Live Call
+  Tests" section, and flag descriptions.
+
 ## [0.1.4] - 2026-03-04
 
 ### Removed
