@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.5] - 2026-03-05
+
+### Added
+- **Example input validation** — before calling a tool with an example, the
+  plugin now validates the example's `input` against the tool's `inputSchema`:
+  - All fields listed in `required` must be present; missing required fields
+    cause the generated test to fail immediately (no network call is made).
+  - Every provided field value must match the declared JSON Schema `type`
+    (`string`, `integer`, `number`, `boolean`, `array`, `object`, `null`).
+  - String fields with a `format` keyword (`email`, `uri`, `date`, `date-time`,
+    `time`) must match the expected pattern.
+  - Failure messages clearly identify which field violated which constraint
+    (`missing required field`, `type`, or `format`), satisfying the test
+    assertions in the integration suite.
+- **`collect_example_input_violations()` helper** — new public function that
+  implements the input-validation logic and returns a list of violation strings.
+- **`_FORMAT_VALIDATORS` dict** — maps JSON Schema `format` keywords to
+  compiled regex patterns used by `collect_example_input_violations`.
+- **Three new mock servers** for the integration test suite:
+  - `example_missing_required_server` — `send_message` tool whose example
+    omits the required `recipient` field.
+  - `example_wrong_type_server` — `set_count` tool whose example supplies the
+    string `"five"` for an `integer`-typed field.
+  - `example_wrong_format_server` — `notify_user` tool whose example supplies
+    `"not-an-email"` for a field declared with `format: "email"`.
+- **Three new integration tests** exercising the above scenarios:
+  - `test_example_fails_validation_when_required_field_missing`
+  - `test_example_fails_validation_when_field_has_wrong_type`
+  - `test_example_fails_validation_when_field_has_wrong_format`
+- **`mkdocs.yml` placeholder values replaced** — `<MODULE-NAME>`,
+  `<ORGANIZATION>`, and `<AUTHOR-NAME>` replaced with real values so deployed
+  documentation has correct site URL and repository links.
+
+### Changed
+- `make_example_test` now accepts an `inputSchema` argument and calls
+  `collect_example_input_violations` before making any `tools/call` request.
+
+---
+
 ## [0.1.4] - 2026-03-04
 
 ### Added

@@ -1451,3 +1451,135 @@ def test_strict_mode_fails_when_tool_missing_output_schema():
     ), f"Expected strict mode to fail when tool has no outputSchema, got exit code: {result.returncode}"
 
     print("✅ test_strict_mode_fails_when_tool_missing_output_schema correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_example_fails_validation_when_required_field_missing():
+    """Test that an example test fails when the example omits a required inputSchema field.
+
+    The example_missing_required_server exposes a send_message tool whose
+    inputSchema requires both "text" and "recipient", but the single example
+    only provides "text". The generated test must fail before the tool call
+    with a message about the missing required field.
+    """
+    print("\n🔍 Testing example validation fails when required field is missing...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://example-missing-required-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_send_message_example_0" in output
+    ), f"Expected test_send_message_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_send_message_example_0" in output
+    ), f"Expected test_send_message_example_0 to fail, got:\n{output}"
+
+    assert (
+        "required" in output.lower() or "missing" in output.lower()
+    ), f"Expected failure message about missing required field, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when example is missing a required field, got exit code: {result.returncode}"
+
+    print("✅ test_example_fails_validation_when_required_field_missing correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_example_fails_validation_when_field_has_wrong_type():
+    """Test that an example test fails when an example field has the wrong type.
+
+    The example_wrong_type_server exposes a set_count tool whose inputSchema
+    declares the "count" field as type "integer", but the example provides the
+    string "five". The generated test must fail before the tool call with a
+    message about the type mismatch.
+    """
+    print("\n🔍 Testing example validation fails when field has wrong type...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://example-wrong-type-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_set_count_example_0" in output
+    ), f"Expected test_set_count_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_set_count_example_0" in output
+    ), f"Expected test_set_count_example_0 to fail, got:\n{output}"
+
+    assert (
+        "type" in output.lower()
+    ), f"Expected failure message about wrong type, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when example field has wrong type, got exit code: {result.returncode}"
+
+    print("✅ test_example_fails_validation_when_field_has_wrong_type correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_example_fails_validation_when_field_has_wrong_format():
+    """Test that an example test fails when an example field has the wrong format.
+
+    The example_wrong_format_server exposes a notify_user tool whose inputSchema
+    declares the "email" field as type "string" with format "email", but the
+    example provides "not-an-email" (no @ symbol). The generated test must fail
+    before the tool call with a message about the format violation.
+    """
+    print("\n🔍 Testing example validation fails when field has wrong format...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://example-wrong-format-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_notify_user_example_0" in output
+    ), f"Expected test_notify_user_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_notify_user_example_0" in output
+    ), f"Expected test_notify_user_example_0 to fail, got:\n{output}"
+
+    assert (
+        "format" in output.lower()
+    ), f"Expected failure message about wrong format, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail when example field has wrong format, got exit code: {result.returncode}"
+
+    print("✅ test_example_fails_validation_when_field_has_wrong_format correctly failed", flush=True)
