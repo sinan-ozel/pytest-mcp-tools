@@ -15,3 +15,7 @@
 - [ ] Check `outputSchema` after tool calls.
 - [ ] Check that the `descriprion` is meaningful with LLM as Judge methodology.
 - [x] Add --mcp-tools-strict. Do all have outputSchema and examples?
+- [ ] tool calls: correct combinations
+- [ ] tool calls: missing fields, expect -32602. Clearly repoting on all missing fields.
+- [ ] tool calls: fields with wrong type, expect -32602. Clearly repoting on all missing fields.
+- [ ] tool calls: more detailed examples using format for strings
