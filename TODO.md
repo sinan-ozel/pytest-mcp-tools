@@ -7,9 +7,11 @@
 - [x] Check `inputSchema`.
 - [ ] Check that `inputSchema` has examples for all fields/properties
 - [ ] Check an example (optional with kwarg)
+- [ ] Check examples against schema. Do they have all required fields?
 - [x] Check `outputSchema`.
 - [ ] Add tool calls `--mcp-tools-only-read-only`/`--mcp-tools-production` will limit this to `readOnlyHint`==`true`
 - [ ] Add tool calls based on examples
 - [ ] Add tool calls based on descriptions
 - [ ] Check `outputSchema` after tool calls.
 - [ ] Check that the `descriprion` is meaningful with LLM as Judge methodology.
+- [x] Add --mcp-tools-strict. Do all have outputSchema and examples?

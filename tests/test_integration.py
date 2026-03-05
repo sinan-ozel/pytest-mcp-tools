@@ -1090,3 +1090,364 @@ def test_input_schema_field_types_fails_with_deeply_nested_invalid_type():
     ), f"Expected pytest to fail when innermost inputSchema field has an invalid type, got exit code: {result.returncode}"
 
     print("✅ test_nested_call_input_schema_field_types correctly failed for deeply nested invalid type", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_example_tests_generated_and_pass():
+    """Test that per-tool example tests are generated and pass for all tools with examples.
+
+    The examples_server exposes three tools:
+    - get_greeting (readOnlyHint=True, 2 examples, outputSchema)
+    - add_numbers  (readOnlyHint=False, 1 example, outputSchema)
+    - echo_text    (readOnlyHint=True, 1 example, no outputSchema)
+
+    Without --mcp-tools-production or --mcp-tools-read-only, all four example
+    tests must be generated and pass.
+    """
+    print("\n🔍 Testing example test generation for all tools in examples-server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://examples-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_get_greeting_example_0" in output
+    ), f"Expected test_get_greeting_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_get_greeting_example_1" in output
+    ), f"Expected test_get_greeting_example_1 in output, got:\n{output}"
+
+    assert (
+        "test_add_numbers_example_0" in output
+    ), f"Expected test_add_numbers_example_0 in output, got:\n{output}"
+
+    assert (
+        "test_echo_text_example_0" in output
+    ), f"Expected test_echo_text_example_0 in output, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_example_tests_generated_and_pass: all 4 example tests generated and passed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_example_test_fails_when_output_type_mismatches_schema():
+    """Test that an example test fails when structuredContent type mismatches outputSchema.
+
+    The output_schema_type_error_server returns integer 42 for a field declared
+    as type "string" in outputSchema. The generated example test must detect this
+    and fail.
+    """
+    print("\n🔍 Testing example test failure on outputSchema type mismatch...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://output-schema-type-error-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_get_value_example_0" in output
+    ), f"Expected test_get_value_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_get_value_example_0" in output
+    ), f"Expected test_get_value_example_0 to fail, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected pytest to fail on output type mismatch, got exit code: {result.returncode}"
+
+    print("✅ test_example_test_fails_when_output_type_mismatches_schema correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_without_flags_all_example_tests_generated():
+    """Test that without production/read-only flags, all tools generate example tests.
+
+    The read_only_examples_server has fetch_info (readOnlyHint=True) and
+    mutate_data (readOnlyHint=False). Without flags, both should get example tests.
+    """
+    print("\n🔍 Testing that all tools generate example tests when no filter flags are set...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://read-only-examples-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_fetch_info_example_0" in output
+    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_mutate_data_example_0" in output
+    ), f"Expected test_mutate_data_example_0 in output, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_without_flags_all_example_tests_generated: both tools generated example tests", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_production_flag_filters_to_read_only_tools():
+    """Test that --mcp-tools-production limits example tests to readOnlyHint=True tools.
+
+    The read_only_examples_server has fetch_info (readOnlyHint=True) and
+    mutate_data (readOnlyHint=False). With --mcp-tools-production, only
+    fetch_info should get an example test; mutate_data must not.
+    """
+    print("\n🔍 Testing --mcp-tools-production limits examples to readOnly tools...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://read-only-examples-server:8000",
+            "--mcp-tools-production",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_fetch_info_example_0" in output
+    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_mutate_data_example_0" not in output
+    ), f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-production, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected example tests to pass with --mcp-tools-production, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_production_flag_filters_to_read_only_tools: mutate_data correctly excluded", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_read_only_flag_filters_to_read_only_tools():
+    """Test that --mcp-tools-read-only limits example tests to readOnlyHint=True tools.
+
+    Identical behaviour to --mcp-tools-production: only fetch_info should get
+    an example test; mutate_data must not.
+    """
+    print("\n🔍 Testing --mcp-tools-read-only limits examples to readOnly tools...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://read-only-examples-server:8000",
+            "--mcp-tools-read-only",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_fetch_info_example_0" in output
+    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_mutate_data_example_0" not in output
+    ), f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-read-only, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected example tests to pass with --mcp-tools-read-only, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_read_only_flag_filters_to_read_only_tools: mutate_data correctly excluded", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_strict_mode_passes_when_all_tools_compliant():
+    """Test that --mcp-tools-strict passes when every tool has examples and outputSchema.
+
+    The read_only_examples_server exposes fetch_info and mutate_data, both of
+    which have examples and an outputSchema. With --mcp-tools-strict the plugin
+    must generate the has_examples and has_output_schema tests and they must all
+    pass.
+    """
+    print("\n🔍 Testing --mcp-tools-strict passes when all tools are compliant...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://read-only-examples-server:8000",
+            "--mcp-tools-strict",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_fetch_info_has_examples" in output
+    ), f"Expected test_fetch_info_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_fetch_info_has_output_schema" in output
+    ), f"Expected test_fetch_info_has_output_schema in output, got:\n{output}"
+
+    assert (
+        "test_mutate_data_has_examples" in output
+    ), f"Expected test_mutate_data_has_examples in output, got:\n{output}"
+
+    assert (
+        "test_mutate_data_has_output_schema" in output
+    ), f"Expected test_mutate_data_has_output_schema in output, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected strict mode to pass for compliant server, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_strict_mode_passes_when_all_tools_compliant", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_strict_mode_fails_when_tool_missing_examples():
+    """Test that --mcp-tools-strict fails when a tool has no examples.
+
+    The basic_server has a stream_message tool with no examples. With
+    --mcp-tools-strict the plugin must generate test_stream_message_has_examples
+    and it must fail.
+    """
+    print("\n🔍 Testing --mcp-tools-strict fails when a tool is missing examples...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://basic-server:8000",
+            "--mcp-tools-strict",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_stream_message_has_examples" in output
+    ), f"Expected test_stream_message_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_stream_message_has_examples" in output
+    ), f"Expected test_stream_message_has_examples to fail, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected strict mode to fail when tool has no examples, got exit code: {result.returncode}"
+
+    print("✅ test_strict_mode_fails_when_tool_missing_examples correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_strict_mode_fails_when_tool_missing_output_schema():
+    """Test that --mcp-tools-strict fails when a tool has no outputSchema.
+
+    The examples_server has an echo_text tool that has examples but no
+    outputSchema. With --mcp-tools-strict the plugin must generate
+    test_echo_text_has_output_schema and it must fail.
+    """
+    print("\n🔍 Testing --mcp-tools-strict fails when a tool is missing outputSchema...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://examples-server:8000",
+            "--mcp-tools-strict",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_echo_text_has_output_schema" in output
+    ), f"Expected test_echo_text_has_output_schema in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "FAILED" in output and "test_echo_text_has_output_schema" in output
+    ), f"Expected test_echo_text_has_output_schema to fail, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), f"Expected strict mode to fail when tool has no outputSchema, got exit code: {result.returncode}"
+
+    print("✅ test_strict_mode_fails_when_tool_missing_output_schema correctly failed", flush=True)

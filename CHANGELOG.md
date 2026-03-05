@@ -8,6 +8,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.4] - 2026-03-04
 
+### Added
+- **`--mcp-tools-strict` CLI flag** — when set, generates two per-tool compliance
+  tests (marked `mcp_tools_strict`) for every tool in the server:
+  - `test_{tool}_has_examples`: fails if the tool has no `examples` list.
+  - `test_{tool}_has_output_schema`: fails if the tool has no `outputSchema`.
+- **Three new integration tests** covering strict mode: passes when all tools
+  are compliant, fails when a tool is missing examples, fails when a tool is
+  missing `outputSchema`. No new mock servers were added; existing
+  `read_only_examples_server`, `basic_server`, and `examples_server` are reused.
+- **Example-based live call tests** — for every tool that declares an `examples`
+  list, the plugin now generates one test per example (marked `mcp_tools_examples`).
+  Each test calls the tool via `tools/call` with the example input, asserts no
+  JSON-RPC error, and — when the tool has an `outputSchema` — validates that
+  every field in `structuredContent` matches the declared JSON Schema type.
+  Generated tests are named `test_{tool_name}_example_{n}` (0-based index).
+- **`--mcp-tools-production` CLI flag** — when set, example tests are only
+  generated for tools where `annotations.readOnlyHint` is `true`. Useful for
+  safe smoke tests against live production or staging environments.
+- **`--mcp-tools-read-only` CLI flag** — alias for `--mcp-tools-production`,
+  providing the same read-only filtering behaviour.
+- **`collect_output_schema_type_mismatches()` helper** — validates that
+  `structuredContent` values match their declared `outputSchema` types,
+  recursing into nested `properties` objects.
+- **`_post_tools_call()` helper** — sends a `tools/call` JSON-RPC request with
+  session initialisation support (MCP Streamable HTTP spec 2025-03-26).
+- **Three new test servers** added to the integration test suite:
+  - `examples_server` — tools with `examples` and `outputSchema` (happy path)
+  - `output_schema_type_error_server` — tool returns wrong type for
+    `outputSchema`-declared field (expected failure)
+  - `read_only_examples_server` — mixed `readOnlyHint` tools for verifying
+    production/read-only filter behaviour
+- **Five new integration tests** covering the above scenarios.
+
 ### Removed
 - **STDIO transport support** — the plugin now only tests HTTP (`/mcp`)
   endpoints. Servers that only respond over STDIO will no longer produce

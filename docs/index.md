@@ -125,6 +125,76 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_tool_annotations_are_consistent` | — | At least one tool has `annotations` |
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
+| `test_{tool}_example_{n}` | — | Per tool per example: tool has `examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
+| `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `examples` |
+| `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
+
+### Example-Based Live Call Tests
+
+For every tool that declares an `examples` list, the plugin generates one test
+per example (marked `mcp_tools_examples`):
+
+```bash
+# Run example tests for all tools
+pytest --mcp-tools=http://localhost:8000
+
+# Run example tests only for read-only tools (safe for production/staging)
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-production
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-read-only
+```
+
+Each generated test (named `test_{tool_name}_example_{n}`) does the following:
+
+1. Calls the tool via `tools/call` using the example's `input` as arguments.
+2. Asserts the response contains no JSON-RPC error.
+3. If the tool declares an `outputSchema`, validates that every field in
+   `structuredContent` matches the declared JSON Schema type.
+
+**`--mcp-tools-production` / `--mcp-tools-read-only`** (aliases, default `false`)
+
+When either flag is set, example tests are only generated for tools where
+`annotations.readOnlyHint` is `true`. This is useful for running safe smoke
+tests against a live production or staging environment without triggering
+side effects from write operations.
+
+Example tool definition with examples and outputSchema:
+
+```json
+{
+  "name": "get_greeting",
+  "annotations": { "readOnlyHint": true },
+  "examples": [
+    { "input": { "name": "World" } },
+    { "input": { "name": "Claude" } }
+  ],
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "greeting": { "type": "string", "description": "The greeting message" }
+    }
+  }
+}
+```
+
+This would generate `test_get_greeting_example_0` and
+`test_get_greeting_example_1`, each calling the tool and verifying the
+`greeting` field in `structuredContent` is a string.
+
+### Strict Mode
+
+`--mcp-tools-strict` (default `false`) generates two compliance tests per tool:
+
+- **`test_{tool_name}_has_examples`** — passes if the tool declares at least one
+  entry in its `examples` list; fails otherwise.
+- **`test_{tool_name}_has_output_schema`** — passes if the tool declares an
+  `outputSchema` object; fails otherwise.
+
+```bash
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-strict
+```
+
+Use this flag to enforce that every tool in your server is fully documented
+with call examples and a structured output schema.
 
 ### inputSchema Field Validation
 
