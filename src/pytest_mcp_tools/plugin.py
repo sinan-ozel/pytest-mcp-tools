@@ -219,7 +219,7 @@ def collect_example_input_violations(example_input, input_schema):
     ``format`` keyword match the expected pattern.
 
     Args:
-        example_input: The ``input`` dict from a tool example.
+        example_input: An example dict from ``inputSchema.examples``.
         input_schema: The tool's ``inputSchema`` dict (JSON Schema object).
 
     Returns:
@@ -1015,7 +1015,7 @@ def pytest_collection_modifyitems(session, config, items):
             tool_name = tool.get("name", "")
             if not tool_name:
                 continue
-            examples = tool.get("examples", [])
+            examples = tool.get("inputSchema", {}).get("examples", [])
             if not examples:
                 continue
 
@@ -1029,7 +1029,7 @@ def pytest_collection_modifyitems(session, config, items):
             safe_name = tool_name.replace("-", "_").replace(" ", "_")
 
             for idx, example in enumerate(examples):
-                example_input = example.get("input", {})
+                example_input = example
                 test_name = f"test_{safe_name}_example_{idx}"
 
                 def make_example_test(url, tname, args, out_props, schema, endpoint="/mcp"):
@@ -1108,7 +1108,7 @@ def pytest_collection_modifyitems(session, config, items):
                         pass
                     return test_func
 
-                has_examples = bool(tool.get("examples"))
+                has_examples = bool(tool.get("inputSchema", {}).get("examples"))
                 examples_test_name = f"test_{safe_name}_has_examples"
                 examples_func = (
                     make_has_examples_pass(tool_name)

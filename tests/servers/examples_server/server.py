@@ -22,6 +22,10 @@ TOOLS = [
                 }
             },
             "required": ["name"],
+            "examples": [
+                {"name": "World"},
+                {"name": "Claude"},
+            ],
         },
         "outputSchema": {
             "type": "object",
@@ -32,10 +36,6 @@ TOOLS = [
                 }
             },
         },
-        "examples": [
-            {"input": {"name": "World"}},
-            {"input": {"name": "Claude"}},
-        ],
     },
     {
         "name": "add_numbers",
@@ -57,6 +57,9 @@ TOOLS = [
                 },
             },
             "required": ["a", "b"],
+            "examples": [
+                {"a": 1, "b": 2},
+            ],
         },
         "outputSchema": {
             "type": "object",
@@ -67,9 +70,6 @@ TOOLS = [
                 }
             },
         },
-        "examples": [
-            {"input": {"a": 1, "b": 2}},
-        ],
     },
     {
         "name": "echo_text",
@@ -87,10 +87,10 @@ TOOLS = [
                 }
             },
             "required": ["text"],
+            "examples": [
+                {"text": "hello"},
+            ],
         },
-        "examples": [
-            {"input": {"text": "hello"}},
-        ],
     },
 ]
 

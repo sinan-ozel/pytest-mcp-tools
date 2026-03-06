@@ -23,11 +23,11 @@ TOOLS = [
                 },
             },
             "required": ["email"],
+            "examples": [
+                # "email" format is "email" but value is not a valid email address
+                {"email": "not-an-email"},
+            ],
         },
-        "examples": [
-            # "email" format is "email" but value is not a valid email address
-            {"input": {"email": "not-an-email"}},
-        ],
     },
 ]
 

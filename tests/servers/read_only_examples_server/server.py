@@ -16,6 +16,9 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {},
+            "examples": [
+                {},
+            ],
         },
         "outputSchema": {
             "type": "object",
@@ -26,9 +29,6 @@ TOOLS = [
                 }
             },
         },
-        "examples": [
-            {"input": {}},
-        ],
     },
     {
         "name": "mutate_data",
@@ -46,6 +46,9 @@ TOOLS = [
                 }
             },
             "required": ["key"],
+            "examples": [
+                {"key": "test"},
+            ],
         },
         "outputSchema": {
             "type": "object",
@@ -56,9 +59,6 @@ TOOLS = [
                 }
             },
         },
-        "examples": [
-            {"input": {"key": "test"}},
-        ],
     },
 ]
 

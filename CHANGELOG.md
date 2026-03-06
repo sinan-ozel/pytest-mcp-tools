@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.6] - 2026-03-05
+
+### Changed
+- **Examples read from `inputSchema.examples`** — the plugin now reads per-tool
+  examples from `tool["inputSchema"]["examples"]` (standard JSON Schema location)
+  instead of `tool["examples"]` (non-standard tool-level key). Each example is a
+  plain dict of input arguments rather than a `{"input": {...}}` wrapper. This
+  aligns with the JSON Schema specification and real-world MCP server behaviour.
+- **All mock servers updated** — the six test servers
+  (`examples_server`, `output_schema_type_error_server`,
+  `read_only_examples_server`, `example_missing_required_server`,
+  `example_wrong_type_server`, `example_wrong_format_server`) have had their
+  examples moved from the tool level into `inputSchema.examples` with the plain
+  dict format.
+- **`--mcp-tools-strict` `has_examples` check updated** — strict-mode now
+  checks `inputSchema.examples` for presence of at least one example.
+- **Documentation updated** — `docs/index.md` now shows the correct
+  `inputSchema.examples` format in the feature table, section descriptions, and
+  JSON example snippet.
+
+
 ## [0.1.5] - 2026-03-05
 
 ### Added
