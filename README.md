@@ -9,10 +9,7 @@
 
 This is an opinionated tool for testing MCP servers live.
 
-You point it at a live MCP server with streaming response, and it:
-- Queries HTTP endpoints (/mcp)
-- Lists available tools
-- Validates that tools have descriptions
+
 
 ```
 pytest --mcp-tools=http://localhost:8000
@@ -20,14 +17,13 @@ pytest --mcp-tools=http://localhost:8000
 
 
 ```
+
 🔍 MCP Tools: Discovering endpoints at http://docker-image:8000...
    Checking http://docker-image:8000...
    ✓ Server reachable (status: 404)
    ✓ Found endpoint: /mcp (status: 200)
    ✗ Endpoint /sse not found (status: 404)
    ✗ Endpoint /messages not found (status: 404)
-🔍 MCP Tools: Checking STDIO support for docker-image...
-   ✓ STDIO communication successful (3 tool(s) found)
 ✅ MCP Tools: Discovered endpoints: /mcp
 
 ============================= test session starts ==============================
@@ -35,22 +31,28 @@ platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0 -- /usr/local/bin/p
 cachedir: .pytest_cache
 rootdir: /app
 configfile: pyproject.toml
-plugins: mcp-tools-0.1.2, anyio-4.12.1
+plugins: mcp-tools-0.1.8, anyio-4.12.1
 collecting ... collected 0 items
 
-created 6 tests
+created 5 tests
 ✅ MCP tools test created for discovered endpoints: /mcp
-   📡 HTTP streaming support detected
-   📡 STDIO transport support detected
+docker-image-1  | INFO:     172.28.0.3:39934 - "POST /mcp HTTP/1.1" 200 OK
 
-..::test_mcp_tools[POST /mcp] PASSED                                     [ 16%]
-..::test_list_tools_from_basic_server PASSED                             [ 33%]
-..::test_tools_have_descriptions PASSED                                  [ 50%]
-..::test_tools_have_names PASSED                                         [ 66%]
-..::test_tools_have_unique_names PASSED                                  [ 83%]
-..::test_list_tools_via_stdio PASSED                                     [100%]
 
-============================== 6 passed in 2.62s ===============================
+
+
+
+..::test_mcp_tools[POST /mcp] PASSED                                     [ 11%]
+..::test_list_tools_from_basic_server PASSED                             [ 22%]
+..::test_tools_have_descriptions PASSED                                  [ 33%]
+..::test_tools_have_names PASSED                                         [ 44%]
+..::test_tools_have_unique_names PASSED                                  [ 55%]
+..::test_generate_spell_card_stream_input_schema_field_descriptions PASSED [ 66%]
+..::test_generate_spell_card_stream_input_schema_field_types PASSED      [ 77%]
+..::test_generate_spell_card_stream_example_0 PASSED                     [ 88%]
+..::test_generate_spell_card_stream_example_1 PASSED                     [100%]
+
+============================== 9 passed in 0.50s ===============================
 ```
 
 # Reporting Issues
