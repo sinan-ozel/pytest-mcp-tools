@@ -125,13 +125,13 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_tool_annotations_are_consistent` | — | At least one tool has `annotations` |
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
-| `test_{tool}_example_{n}` | — | Per tool per example: tool has `examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
-| `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `examples` |
+| `test_{tool}_example_{n}` | — | Per tool per example: tool has `inputSchema.examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
+| `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `inputSchema.examples` |
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
 
 ### Example-Based Live Call Tests
 
-For every tool that declares an `examples` list, the plugin generates one test
+For every tool that declares an `inputSchema.examples` list, the plugin generates one test
 per example (marked `mcp_tools_examples`):
 
 ```bash
@@ -154,7 +154,7 @@ Each generated test (named `test_{tool_name}_example_{n}`) does the following:
      `date-time`, `time`) must match the expected pattern.
    - The test fails immediately with a descriptive message if any violation is
      found, without ever calling the server.
-2. Calls the tool via `tools/call` using the example's `input` as arguments.
+2. Calls the tool via `tools/call` using the example as arguments.
 3. Asserts the response contains no JSON-RPC error.
 4. If the tool declares an `outputSchema`, validates that every field in
    `structuredContent` matches the declared JSON Schema type.
@@ -172,10 +172,17 @@ Example tool definition with examples and outputSchema:
 {
   "name": "get_greeting",
   "annotations": { "readOnlyHint": true },
-  "examples": [
-    { "input": { "name": "World" } },
-    { "input": { "name": "Claude" } }
-  ],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string", "description": "The name to greet" }
+    },
+    "required": ["name"],
+    "examples": [
+      { "name": "World" },
+      { "name": "Claude" }
+    ]
+  },
   "outputSchema": {
     "type": "object",
     "properties": {
@@ -194,7 +201,7 @@ This would generate `test_get_greeting_example_0` and
 `--mcp-tools-strict` (default `false`) generates two compliance tests per tool:
 
 - **`test_{tool_name}_has_examples`** — passes if the tool declares at least one
-  entry in its `examples` list; fails otherwise.
+  entry in its `inputSchema.examples` list; fails otherwise.
 - **`test_{tool_name}_has_output_schema`** — passes if the tool declares an
   `outputSchema` object; fails otherwise.
 

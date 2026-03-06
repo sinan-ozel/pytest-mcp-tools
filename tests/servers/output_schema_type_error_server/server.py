@@ -16,6 +16,9 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {},
+            "examples": [
+                {},
+            ],
         },
         "outputSchema": {
             "type": "object",
@@ -26,9 +29,6 @@ TOOLS = [
                 }
             },
         },
-        "examples": [
-            {"input": {}},
-        ],
     },
 ]
 

@@ -26,11 +26,11 @@ TOOLS = [
                 },
             },
             "required": ["text", "recipient"],
+            "examples": [
+                # Missing required field "recipient"
+                {"text": "Hello"},
+            ],
         },
-        "examples": [
-            # Missing required field "recipient"
-            {"input": {"text": "Hello"}},
-        ],
     },
 ]
 

@@ -22,11 +22,11 @@ TOOLS = [
                 },
             },
             "required": ["count"],
+            "examples": [
+                # "count" should be integer but is provided as a string
+                {"count": "five"},
+            ],
         },
-        "examples": [
-            # "count" should be integer but is provided as a string
-            {"input": {"count": "five"}},
-        ],
     },
 ]
 
