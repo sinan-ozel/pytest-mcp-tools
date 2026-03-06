@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.1.6] - 2026-03-05
+## [0.1.8] - 2026-03-05
 
 ### Changed
 - **Examples read from `inputSchema.examples`** — the plugin now reads per-tool
@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Documentation updated** — `docs/index.md` now shows the correct
   `inputSchema.examples` format in the feature table, section descriptions, and
   JSON example snippet.
+
+### Note
+The version numbers between 0.1.6 to 0.1.9 are missing because I used them
+to test and fix the automated document publishing pipeline.
 
 
 ## [0.1.5] - 2026-03-05
