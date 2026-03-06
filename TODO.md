@@ -5,14 +5,14 @@
 - [x] Check annotation: expect `readOnlyHint`==`false` if `idempotentHint`
 - [x] Check annotation: expect `readOnlyHint`==`false` if `destructiveHint`
 - [x] Check `inputSchema`.
-- [ ] Check that `inputSchema` has examples for all fields/properties
-- [ ] Check an example (optional with kwarg)
-- [ ] Check examples against schema. Do they have all required fields?
+- [x] Check that `inputSchema` has examples for all fields/properties
+- [x] Check an example (optional with kwarg)
+- [x] Check examples against schema. Do they have all required fields?
 - [x] Check `outputSchema`.
-- [ ] Add tool calls `--mcp-tools-only-read-only`/`--mcp-tools-production` will limit this to `readOnlyHint`==`true`
-- [ ] Add tool calls based on examples
+- [x] Add tool calls `--mcp-tools-only-read-only`/`--mcp-tools-production` will limit this to `readOnlyHint`==`true`
+- [x] Add tool calls based on examples
 - [ ] Add tool calls based on descriptions
-- [ ] Check `outputSchema` after tool calls.
+- [x] Check `outputSchema` after tool calls.
 - [ ] Check that the `descriprion` is meaningful with LLM as Judge methodology.
 - [x] Add --mcp-tools-strict. Do all have outputSchema and examples?
 - [ ] tool calls: correct combinations
