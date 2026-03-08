@@ -299,6 +299,11 @@ def _field_values(field_schema):
         return [[]]
 
     if field_type == "object":
+        # Skip nested objects that declare required sub-fields — we cannot
+        # generate valid values for them without recursion, and {} would fail
+        # server-side validation.
+        if field_schema.get("required"):
+            return []
         return [{}]
 
     if field_type == "null":
@@ -311,10 +316,11 @@ def generate_schema_cases(input_schema):
     """Generate a list of valid input dicts derived from a tool's inputSchema.
 
     Produces one *basic* case using the first valid value for every required
-    field, then one additional case per extra value for each field (varying
-    that field while holding all others at their basic value).  Only required
-    fields are varied; optional fields are omitted to keep case counts
-    manageable.  When no required fields are declared all properties are used.
+    field (plus every optional field with an ``enum`` constraint), then one
+    additional case per extra value for each field (varying that field while
+    holding all others at their basic value).  Optional enum fields are always
+    included because they have a finite set of valid values worth exercising.
+    When no required or optional-enum fields exist, all properties are used.
 
     Field values are chosen to maximise coverage:
 
@@ -344,8 +350,15 @@ def generate_schema_cases(input_schema):
     if not properties:
         return []
 
-    required = input_schema.get("required", [])
-    fields = [f for f in required if f in properties] or list(properties.keys())
+    required = set(input_schema.get("required", []))
+    # Always include enum fields even when optional — they have a finite set of
+    # valid values that are all worth exercising.
+    optional_enum_fields = [
+        f for f, s in properties.items()
+        if f not in required and s.get("enum")
+    ]
+    required_fields = [f for f in required if f in properties]
+    fields = (required_fields + optional_enum_fields) or list(properties.keys())
 
     field_value_map = {}
     for field in fields:
