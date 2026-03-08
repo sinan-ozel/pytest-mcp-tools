@@ -363,6 +363,25 @@ services:
       retries: 20
       start_period: 5s
 
+  schema-driven-server:
+    build:
+      context: servers/schema_driven_server
+      dockerfile: Dockerfile
+    image: schema-driven-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -408,6 +427,8 @@ services:
       example-wrong-type-server:
         condition: service_healthy
       example-wrong-format-server:
+        condition: service_healthy
+      schema-driven-server:
         condition: service_healthy
     networks:
       - testnet

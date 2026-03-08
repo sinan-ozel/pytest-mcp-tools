@@ -1583,3 +1583,270 @@ def test_example_fails_validation_when_field_has_wrong_format():
     ), f"Expected pytest to fail when example field has wrong format, got exit code: {result.returncode}"
 
     print("✅ test_example_fails_validation_when_field_has_wrong_format correctly failed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_string_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for a plain string field.
+
+    The schema_driven_server exposes echo_string with a text field of type
+    string (no format). The plugin must generate schema-based tests covering
+    ASCII, UTF-8 Chinese, UTF-8 Turkish, emoji, single-quote, double-quote,
+    SQL injection, and HTML injection values.
+
+    All eight generated tests must appear in pytest output and pass.
+    """
+    print("\n🔍 Testing schema-driven string test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # 8 schema-driven cases for the plain-string text field
+    for idx in range(8):
+        assert (
+            f"test_echo_string_schema_{idx}" in output
+        ), (
+            f"Expected test_echo_string_schema_{idx} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all schema-driven string tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_schema_driven_string_tests_generated_and_pass: all 8 string tests passed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_number_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for an unconstrained number field.
+
+    The schema_driven_server exposes compute with a value field of type number
+    (no minimum or maximum). The plugin must generate tests covering zero,
+    a basic positive, a negative, a large positive, a large negative, and a
+    fractional value.
+
+    All six generated tests must appear and pass.
+    """
+    print("\n🔍 Testing schema-driven number test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # 6 schema-driven cases for the unconstrained number field
+    for idx in range(6):
+        assert (
+            f"test_compute_schema_{idx}" in output
+        ), (
+            f"Expected test_compute_schema_{idx} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all schema-driven number tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_schema_driven_number_tests_generated_and_pass: all 6 number tests passed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_integer_with_constraints_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for a bounded integer field.
+
+    The schema_driven_server exposes bounded_count with n: integer, minimum=0,
+    maximum=100. The plugin must generate tests at the minimum, maximum, and a
+    mid-range value.  Zero equals the minimum here so it is not generated as a
+    separate case.
+
+    All three generated tests must appear and pass.
+    """
+    print("\n🔍 Testing schema-driven constrained integer test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # 3 schema-driven cases: minimum (0), maximum (100), midpoint (50)
+    for idx in range(3):
+        assert (
+            f"test_bounded_count_schema_{idx}" in output
+        ), (
+            f"Expected test_bounded_count_schema_{idx} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected all schema-driven integer tests to pass, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_schema_driven_integer_with_constraints_tests_generated_and_pass: "
+        "all 3 bounded-integer tests passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_boolean_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for a boolean field.
+
+    The schema_driven_server exposes toggle with enabled: boolean. The plugin
+    must generate exactly two tests — one with true and one with false.
+
+    Both tests must appear and pass.
+    """
+    print("\n🔍 Testing schema-driven boolean test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # 2 schema-driven cases: true and false
+    assert (
+        "test_toggle_schema_0" in output
+    ), f"Expected test_toggle_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    assert (
+        "test_toggle_schema_1" in output
+    ), f"Expected test_toggle_schema_1 in output, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all schema-driven boolean tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_schema_driven_boolean_tests_generated_and_pass: both boolean tests passed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_enum_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for every enum value.
+
+    The schema_driven_server exposes pick with choice: enum ["red","green","blue"].
+    The plugin must generate one test per enum value — three tests total.
+
+    All three tests must appear and pass.
+    """
+    print("\n🔍 Testing schema-driven enum test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # 3 schema-driven cases: one per enum value
+    for idx in range(3):
+        assert (
+            f"test_pick_schema_{idx}" in output
+        ), (
+            f"Expected test_pick_schema_{idx} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), f"Expected all schema-driven enum tests to pass, got exit code: {result.returncode}\n{output}"
+
+    print("✅ test_schema_driven_enum_tests_generated_and_pass: all 3 enum tests passed", flush=True)
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_schema_driven_format_tests_generated_and_pass():
+    """Test that schema-driven tests are generated for string fields with format keywords.
+
+    The schema_driven_server exposes check_contact with three fields:
+      email   (format: "email")   — multiple valid email samples generated
+      website (format: "uri")     — multiple valid URI samples generated
+      birthday (format: "date")   — multiple valid date samples generated
+
+    The plugin must generate a basic test (all fields at their simplest valid
+    value) plus per-field variant tests that hold the other fields fixed.
+    The basic test and at least one variant per field must appear, all passing.
+    """
+    print("\n🔍 Testing schema-driven format field test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # basic test (index 0) must always appear
+    assert (
+        "test_check_contact_schema_0" in output
+    ), f"Expected test_check_contact_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+
+    # at least one variant beyond the basic case must be generated
+    assert (
+        "test_check_contact_schema_1" in output
+    ), f"Expected test_check_contact_schema_1 in output, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected all schema-driven format tests to pass, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print("✅ test_schema_driven_format_tests_generated_and_pass: format tests passed", flush=True)
