@@ -6,6 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.1.9] - 2026-03-07
+
+### Added
+- **Schema-driven live call tests** — for every tool that declares
+  `inputSchema.properties` the plugin now auto-generates a set of valid
+  inputs derived entirely from the schema and calls the tool with each,
+  asserting the response matches `outputSchema` (or is a valid JSON-RPC
+  result when no `outputSchema` is present).  Tests are named
+  `test_{tool_name}_schema_{n}` and marked `mcp_tools_schema`.
+- **`generate_schema_cases(input_schema)`** — new public helper that turns a
+  JSON Schema `inputSchema` into a list of valid input dicts.  One *basic*
+  case uses the simplest valid value for every required field; subsequent
+  cases vary one field at a time.
+- **`_field_values(field_schema)`** — new helper that returns the list of
+  valid values for a single JSON Schema field, covering all type/format/enum
+  combinations.
+- **`_STRING_VARIANTS`** — 8-element list of string test values: ASCII,
+  UTF-8 Chinese, UTF-8 Turkish, emoji, single-quote, double-quote,
+  SQL injection, HTML injection.
+- **`_FORMAT_SAMPLES`** — dict mapping JSON Schema `format` keywords
+  (`email`, `uri`, `date`, `date-time`, `time`) to lists of valid sample
+  strings.
+- **`schema_driven_server` mock server** — new Starlette server with six
+  tools covering every supported field type: `echo_string` (plain string),
+  `compute` (unconstrained number), `bounded_count` (integer with
+  minimum/maximum), `toggle` (boolean), `pick` (enum), `check_contact`
+  (email, uri, date format fields).
+- **6 new integration tests** exercising each field-type category:
+  `test_schema_driven_string_tests_generated_and_pass`,
+  `test_schema_driven_number_tests_generated_and_pass`,
+  `test_schema_driven_integer_with_constraints_tests_generated_and_pass`,
+  `test_schema_driven_boolean_tests_generated_and_pass`,
+  `test_schema_driven_enum_tests_generated_and_pass`,
+  `test_schema_driven_format_tests_generated_and_pass`.
+- **`mcp_tools_schema` pytest marker** registered for schema-driven tests.
+- **`docs/index.md`** updated with a *Schema-Driven Live Call Tests* section
+  and an updated test-generation table.
+
+
 ## [0.1.8] - 2026-03-05
 
 ### Changed

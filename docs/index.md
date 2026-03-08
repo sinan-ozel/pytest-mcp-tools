@@ -126,6 +126,7 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_example_{n}` | — | Per tool per example: tool has `inputSchema.examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
+| `test_{tool}_schema_{n}` | — | Per tool: tool has `inputSchema.properties`; auto-generated from field types (marked `mcp_tools_schema`) |
 | `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `inputSchema.examples` |
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
 
@@ -195,6 +196,34 @@ Example tool definition with examples and outputSchema:
 This would generate `test_get_greeting_example_0` and
 `test_get_greeting_example_1`, each calling the tool and verifying the
 `greeting` field in `structuredContent` is a string.
+
+### Schema-Driven Live Call Tests
+
+For every tool that declares `inputSchema.properties`, the plugin automatically
+generates a set of valid inputs derived from the schema (marked
+`mcp_tools_schema`) and calls the tool with each one, verifying the response
+against `outputSchema`.
+
+Tests are named `test_{tool_name}_schema_{n}` (0-based index).  The first case
+(`schema_0`) uses the simplest valid value for every required field ("basic");
+subsequent cases vary one field at a time while holding others at their basic
+value.
+
+Values generated per field type:
+
+| Field type / format | Values generated |
+|---|---|
+| `string` (no format) | `"hello"`, UTF-8 Chinese, UTF-8 Turkish, emoji, single-quote, double-quote, SQL injection, HTML injection |
+| `string` format `email` | 3 well-formed email addresses |
+| `string` format `uri` | 3 well-formed URIs (`https://`, `http://`, `ftp://`) |
+| `string` format `date` | 3 well-formed dates (`YYYY-MM-DD`) |
+| `string` format `date-time` | 3 well-formed datetime strings |
+| `string` format `time` | 3 well-formed time strings |
+| `string` with `enum` | Every declared enum value |
+| `number` (unconstrained) | `0`, `1`, `-1`, `1e15`, `-1e15`, `3.14` |
+| `integer` (unconstrained) | `0`, `1`, `-1`, `10**15`, `-10**15`, `42` |
+| `number` / `integer` with `minimum` / `maximum` | `minimum`, `maximum`, midpoint, zero (when in range) |
+| `boolean` | `true`, `false` |
 
 ### Strict Mode
 

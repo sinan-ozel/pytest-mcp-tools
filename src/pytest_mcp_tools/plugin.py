@@ -211,6 +211,160 @@ _FORMAT_VALIDATORS = {
 }
 
 
+_STRING_VARIANTS = [
+    "hello",
+    "你好世界",
+    "merhaba dünya",
+    "😀🎉🌍",
+    "it's a test",
+    'say "hello"',
+    "'; DROP TABLE users; --",
+    "<script>alert(1)</script>",
+]
+
+_FORMAT_SAMPLES = {
+    "email": [
+        "user@example.com",
+        "test.user@sub.domain.com",
+        "user+tag@example.org",
+    ],
+    "uri": [
+        "https://example.com",
+        "http://example.com",
+        "ftp://files.example.com",
+    ],
+    "date": ["1990-01-01", "2000-12-31", "2023-06-15"],
+    "date-time": [
+        "2023-01-15T10:30:00Z",
+        "2000-12-31T23:59:59+05:30",
+        "1990-06-01T00:00:00Z",
+    ],
+    "time": ["10:30:00", "00:00:00", "23:59:59"],
+}
+
+
+def _field_values(field_schema):
+    """Return a list of valid values for a single JSON Schema field descriptor.
+
+    Chooses values based on ``type``, ``format``, ``enum``, ``minimum``, and
+    ``maximum``.  The first element in the returned list is always the
+    "basic" (simplest) value; subsequent elements are additional variants
+    used to stress-test the field.
+
+    Args:
+        field_schema: A JSON Schema property descriptor dict.
+
+    Returns:
+        Non-empty list of valid Python values, or empty list if the field
+        type cannot be handled.
+    """
+    enum = field_schema.get("enum")
+    if enum:
+        return list(enum)
+
+    field_type = field_schema.get("type")
+    field_format = field_schema.get("format")
+
+    if field_type == "string":
+        samples = _FORMAT_SAMPLES.get(field_format)
+        if samples:
+            return list(samples)
+        return list(_STRING_VARIANTS)
+
+    if field_type in ("number", "integer"):
+        minimum = field_schema.get("minimum")
+        maximum = field_schema.get("maximum")
+        if minimum is not None or maximum is not None:
+            lo = minimum if minimum is not None else -(10 ** 15)
+            hi = maximum if maximum is not None else 10 ** 15
+            if field_type == "integer":
+                lo, hi = int(lo), int(hi)
+                mid = (lo + hi) // 2
+            else:
+                mid = (lo + hi) / 2
+            values = [lo, hi]
+            if mid not in values:
+                values.append(mid)
+            if lo <= 0 <= hi and 0 not in values:
+                values.append(0)
+            return values
+        if field_type == "integer":
+            return [0, 1, -1, 10 ** 15, -(10 ** 15), 42]
+        return [0, 1, -1, 1e15, -1e15, 3.14]
+
+    if field_type == "boolean":
+        return [True, False]
+
+    if field_type == "array":
+        return [[]]
+
+    if field_type == "object":
+        return [{}]
+
+    if field_type == "null":
+        return [None]
+
+    return []
+
+
+def generate_schema_cases(input_schema):
+    """Generate a list of valid input dicts derived from a tool's inputSchema.
+
+    Produces one *basic* case using the first valid value for every required
+    field, then one additional case per extra value for each field (varying
+    that field while holding all others at their basic value).  Only required
+    fields are varied; optional fields are omitted to keep case counts
+    manageable.  When no required fields are declared all properties are used.
+
+    Field values are chosen to maximise coverage:
+
+    * **string** (no format) — ASCII, UTF-8 Chinese/Turkish, emoji, single-
+      quote, double-quote, SQL injection, HTML injection (8 values).
+    * **string** with format ``email`` / ``uri`` / ``date`` / ``date-time`` /
+      ``time`` — multiple well-formed samples per format (3 values each).
+    * **enum** — every declared enum value.
+    * **number** (unconstrained) — zero, positive, negative, large positive,
+      large negative, fractional (6 values).
+    * **integer** (unconstrained) — same set as number but integers (6 values).
+    * **number / integer** with ``minimum`` / ``maximum`` — boundary values,
+      midpoint, and zero when in range (up to 4 values).
+    * **boolean** — ``True`` and ``False`` (2 values).
+
+    Args:
+        input_schema: The tool's ``inputSchema`` dict (JSON Schema object).
+
+    Returns:
+        List of input dicts.  Empty list when the schema has no properties or
+        no field values can be generated.
+    """
+    if not isinstance(input_schema, dict):
+        return []
+
+    properties = input_schema.get("properties", {})
+    if not properties:
+        return []
+
+    required = input_schema.get("required", [])
+    fields = [f for f in required if f in properties] or list(properties.keys())
+
+    field_value_map = {}
+    for field in fields:
+        values = _field_values(properties[field])
+        if values:
+            field_value_map[field] = values
+
+    if not field_value_map:
+        return []
+
+    basic = {f: vs[0] for f, vs in field_value_map.items()}
+    cases = [basic]
+    for field, values in field_value_map.items():
+        for value in values[1:]:
+            cases.append({**basic, field: value})
+
+    return cases
+
+
 def collect_example_input_violations(example_input, input_schema):
     """Validate an example input dict against the tool's inputSchema.
 
@@ -510,6 +664,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers",
         "mcp_tools_examples: MCP tools per-tool example call tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "mcp_tools_schema: MCP tools schema-driven call tests",
     )
     config.addinivalue_line(
         "markers",
@@ -1081,6 +1239,69 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 example_item.add_marker(pytest.mark.mcp_tools_examples)
                 test_items.append(example_item)
+
+        # --- per-tool schema-driven tests ---
+        # For every tool that has inputSchema properties, auto-generate a set
+        # of valid inputs covering diverse values for each field type, then
+        # call the tool with each and validate the response against outputSchema.
+        for tool in tools_list:
+            tool_name = tool.get("name", "")
+            if not tool_name:
+                continue
+            input_schema = tool.get("inputSchema", {})
+            schema_cases = generate_schema_cases(input_schema)
+            if not schema_cases:
+                continue
+
+            output_schema = tool.get("outputSchema") or {}
+            output_properties = output_schema.get("properties", {})
+            safe_name = tool_name.replace("-", "_").replace(" ", "_")
+
+            for idx, case_input in enumerate(schema_cases):
+                test_name = f"test_{safe_name}_schema_{idx}"
+
+                def make_schema_test(url, tname, args, out_props, endpoint="/mcp"):
+                    def test_func():
+                        """Call tool with schema-generated input; validate output."""
+                        result = _post_tools_call(url, tname, args, endpoint)
+                        assert "error" not in result, (
+                            f"Tool '{tname}' call returned JSON-RPC error: "
+                            f"{result.get('error')}"
+                        )
+                        tool_result = result.get("result", {})
+                        assert "error" not in tool_result, (
+                            f"Tool '{tname}' result contains error: "
+                            f"{tool_result.get('error')}"
+                        )
+                        if out_props:
+                            structured = tool_result.get("structuredContent")
+                            if structured is not None:
+                                mismatches = collect_output_schema_type_mismatches(
+                                    structured, out_props
+                                )
+                                if mismatches:
+                                    details = "; ".join(
+                                        f"'{p}' declared as {declared} "
+                                        f"but got {actual}"
+                                        for p, declared, actual in mismatches
+                                    )
+                                    assert False, (
+                                        f"Tool '{tname}' structuredContent type "
+                                        f"mismatches outputSchema: {details}"
+                                    )
+                    return test_func
+
+                schema_func = make_schema_test(
+                    base_url, tool_name, case_input, output_properties,
+                )
+                schema_func.__name__ = test_name
+                schema_item = pytest.Function.from_parent(
+                    module,
+                    name=test_name,
+                    callobj=schema_func,
+                )
+                schema_item.add_marker(pytest.mark.mcp_tools_schema)
+                test_items.append(schema_item)
 
         # --- strict-mode compliance tests ---
         # When --mcp-tools-strict is set, generate per-tool tests that fail
