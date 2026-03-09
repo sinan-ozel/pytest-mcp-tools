@@ -13,6 +13,10 @@ _MCP_HEADERS = {
     "Accept": "application/json, text/event-stream",
 }
 
+# Per-process cache: avoid sending an initialize request to the same endpoint
+# more than once per pytest invocation.  Keyed by (base_url, endpoint).
+_SESSION_CACHE: dict = {}
+
 
 def _parse_mcp_response(response):
     """Parse an MCP HTTP response, handling both JSON and SSE (text/event-stream).
@@ -61,6 +65,9 @@ def _establish_session(base_url, endpoint="/mcp"):
     Returns:
         Dict of extra headers to include in subsequent requests (may be empty).
     """
+    cache_key = (base_url, endpoint)
+    if cache_key in _SESSION_CACHE:
+        return _SESSION_CACHE[cache_key]
     extra = {}
     try:
         response = requests.post(
@@ -83,6 +90,7 @@ def _establish_session(base_url, endpoint="/mcp"):
             extra = {"Mcp-Session-Id": session_id}
     except Exception:
         pass
+    _SESSION_CACHE[cache_key] = extra
     return extra
 
 
@@ -1268,6 +1276,12 @@ def pytest_collection_modifyitems(session, config, items):
 
             output_schema = tool.get("outputSchema") or {}
             output_properties = output_schema.get("properties", {})
+            # Only generate schema-driven tests for tools that declare an
+            # outputSchema — without one there is nothing to validate in the
+            # response, and calling tools with auto-generated inputs on servers
+            # that do not fully implement tools/call causes spurious failures.
+            if not output_properties:
+                continue
             safe_name = tool_name.replace("-", "_").replace(" ", "_")
 
             for idx, case_input in enumerate(schema_cases):
