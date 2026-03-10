@@ -8,7 +8,8 @@
 # ✨ Introduction
 
 This is an opinionated tool for testing MCP servers live.
-
+The guiding philosphy is that documentation is critical for Agent/LLM use, just like it has been for humans.
+It checks that the schemas and the examples match and return expected codes and messages when called.
 
 
 ```
@@ -37,8 +38,6 @@ collecting ... collected 0 items
 created 5 tests
 ✅ MCP tools test created for discovered endpoints: /mcp
 docker-image-1  | INFO:     172.28.0.3:39934 - "POST /mcp HTTP/1.1" 200 OK
-
-
 
 
 

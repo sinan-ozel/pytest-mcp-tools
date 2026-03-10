@@ -70,7 +70,7 @@ Server with 1 tool (5 generated tests):
 
 ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-plugins: mcp-tools-0.1.4
+plugins: mcp-tools-0.1.9
 collecting ... collected 8 items
 
 created 5 tests
