@@ -76,5 +76,5 @@ recursive = true
 version = { attr = "pytest_mcp_tools.__version__" }
 
 [project.urls]
-Homepage = "https://github.com/<ORGANIZATION>/<MODULE-NAME>"
-Issues = "https://github.com/<ORGANIZATION>/<MODULE-NAME>/issues"
+Homepage = "https://github.com/sinan-ozel/pytest-mcp-tools"
+Issues = "https://github.com/sinan-ozel/pytest-mcp-tools/issues"
