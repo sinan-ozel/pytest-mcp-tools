@@ -1850,3 +1850,323 @@ def test_schema_driven_format_tests_generated_and_pass():
     )
 
     print("✅ test_schema_driven_format_tests_generated_and_pass: format tests passed", flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Missing required field tests (-32602)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_missing_required_field_tests_generated_and_pass():
+    """Test that per-required-field missing-input tests are generated and pass on a strict server.
+
+    The strict_validation_server exposes manage_user with four required fields:
+    username (string), age (integer), email (string format email), and role
+    (string enum).  The plugin must generate one test per required field
+    (test_manage_user_missing_{field}) that calls the tool without that field
+    and expects a -32602 JSON-RPC error code from the server.
+
+    All four generated tests must appear and pass when the server correctly
+    validates its inputs.
+    """
+    print("\n🔍 Testing missing required field test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    for field in ("username", "age", "email", "role"):
+        assert (
+            f"test_manage_user_missing_{field}" in output
+        ), (
+            f"Expected test_manage_user_missing_{field} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected all missing-field tests to pass on strict server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_missing_required_field_tests_generated_and_pass: "
+        "all 4 missing-field tests passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_missing_required_field_tests_fail_on_nonvalidating_server():
+    """Test that missing-field tests fail when the server does not validate required fields.
+
+    The no_validation_server exposes the same manage_user schema but accepts any
+    arguments without validation.  The plugin's missing-field tests expect -32602
+    from the server; since the server returns success instead, those tests must
+    fail and pytest must exit with a non-zero code.
+    """
+    print("\n🔍 Testing missing-field tests fail on non-validating server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Tests must be generated
+    assert (
+        "test_manage_user_missing_username" in output
+    ), (
+        f"Expected test_manage_user_missing_username in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    # At least one missing-field test must fail
+    assert (
+        "FAILED" in output
+        and any(
+            f"test_manage_user_missing_{f}" in output
+            for f in ("username", "age", "email", "role")
+        )
+    ), f"Expected at least one missing-field test to fail, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), (
+        f"Expected pytest to fail when server does not validate required fields, "
+        f"got exit code: {result.returncode}"
+    )
+
+    print(
+        "✅ test_missing_required_field_tests_fail_on_nonvalidating_server: "
+        "missing-field tests correctly failed",
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Wrong type tests (-32602)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_wrong_type_tests_generated_and_pass():
+    """Test that per-field wrong-type tests are generated and pass on a strict server.
+
+    For each field in manage_user the plugin must generate a test
+    (test_manage_user_wrong_type_{field}) that sends an invalid value:
+      username (string)   → a number
+      age (integer)       → a string
+      email (email format)→ a malformed email such as 'claude@ai'
+      role (enum)         → a valid string not in the enum
+
+    All four tests must appear and pass when the server correctly returns -32602
+    for each invalid value.
+    """
+    print("\n🔍 Testing wrong-type test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    for field in ("username", "age", "email", "role"):
+        assert (
+            f"test_manage_user_wrong_type_{field}" in output
+        ), (
+            f"Expected test_manage_user_wrong_type_{field} in output, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected all wrong-type tests to pass on strict server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_wrong_type_tests_generated_and_pass: "
+        "all 4 wrong-type tests passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_wrong_type_tests_fail_on_nonvalidating_server():
+    """Test that wrong-type tests fail when the server accepts values of the wrong type.
+
+    The no_validation_server accepts any arguments and returns success.  The
+    plugin's wrong-type tests expect -32602; since the server returns success,
+    those tests must fail and pytest must exit with a non-zero code.
+    """
+    print("\n🔍 Testing wrong-type tests fail on non-validating server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://no-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    # Tests must be generated
+    assert (
+        "test_manage_user_wrong_type_username" in output
+    ), (
+        f"Expected test_manage_user_wrong_type_username in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    # At least one wrong-type test must fail
+    assert (
+        "FAILED" in output
+        and any(
+            f"test_manage_user_wrong_type_{f}" in output
+            for f in ("username", "age", "email", "role")
+        )
+    ), f"Expected at least one wrong-type test to fail, got:\n{output}"
+
+    assert (
+        result.returncode != 0
+    ), (
+        f"Expected pytest to fail when server does not validate field types, "
+        f"got exit code: {result.returncode}"
+    )
+
+    print(
+        "✅ test_wrong_type_tests_fail_on_nonvalidating_server: "
+        "wrong-type tests correctly failed",
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Invalid request test (-32600)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_request_test_generated_and_pass():
+    """Test that a -32600 invalid-request test is generated and passes on a strict server.
+
+    The plugin must generate test_invalid_request which sends a tools/call
+    request with params set to null (an invalid structure).  The strict server
+    returns -32600; the test passes when that error code is received.
+    """
+    print("\n🔍 Testing invalid-request (-32600) test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_invalid_request" in output
+    ), (
+        f"Expected test_invalid_request in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    assert (
+        "PASSED" in output and "test_invalid_request" in output
+    ), f"Expected test_invalid_request to pass, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected test_invalid_request to pass on strict server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print("✅ test_invalid_request_test_generated_and_pass: test passed", flush=True)
+
+
+# ---------------------------------------------------------------------------
+# Method not found test (-32601)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_method_not_found_test_generated_and_pass():
+    """Test that a -32601 method-not-found test is generated and passes on a strict server.
+
+    The plugin must generate test_method_not_found which calls a non-existent
+    JSON-RPC method (e.g. 'tools/execute').  The strict server returns -32601;
+    the test passes when that error code is received.
+    """
+    print("\n🔍 Testing method-not-found (-32601) test generation...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert (
+        "test_method_not_found" in output
+    ), (
+        f"Expected test_method_not_found in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    assert (
+        "PASSED" in output and "test_method_not_found" in output
+    ), f"Expected test_method_not_found to pass, got:\n{output}"
+
+    assert (
+        result.returncode == 0
+    ), (
+        f"Expected test_method_not_found to pass on strict server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print("✅ test_method_not_found_test_generated_and_pass: test passed", flush=True)

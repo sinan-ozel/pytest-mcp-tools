@@ -382,6 +382,44 @@ services:
       retries: 20
       start_period: 5s
 
+  strict-validation-server:
+    build:
+      context: servers/strict_validation_server
+      dockerfile: Dockerfile
+    image: strict-validation-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
+  no-validation-server:
+    build:
+      context: servers/no_validation_server
+      dockerfile: Dockerfile
+    image: no-validation-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -429,6 +467,10 @@ services:
       example-wrong-format-server:
         condition: service_healthy
       schema-driven-server:
+        condition: service_healthy
+      strict-validation-server:
+        condition: service_healthy
+      no-validation-server:
         condition: service_healthy
     networks:
       - testnet
