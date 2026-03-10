@@ -70,7 +70,7 @@ Server with 1 tool (5 generated tests):
 
 ============================= test session starts ==============================
 platform linux -- Python 3.11.14, pytest-9.0.2, pluggy-1.6.0
-plugins: mcp-tools-0.1.4
+plugins: mcp-tools-0.1.9
 collecting ... collected 8 items
 
 created 5 tests
@@ -200,9 +200,10 @@ This would generate `test_get_greeting_example_0` and
 ### Schema-Driven Live Call Tests
 
 For every tool that declares `inputSchema.properties`, the plugin automatically
-generates a set of valid inputs derived from the schema (marked
-`mcp_tools_schema`) and calls the tool with each one, verifying the response
-against `outputSchema`.
+generates a set of valid inputs derived from the schema (marked `mcp_tools_schema`)
+and calls the tool with each one, asserting a valid (non-error) response. If the
+tool also declares an `outputSchema`, the response is additionally validated against
+its declared field types.
 
 Tests are named `test_{tool_name}_schema_{n}` (0-based index).  The first case
 (`schema_0`) uses the simplest valid value for every required field ("basic");
