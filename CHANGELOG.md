@@ -6,15 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## [0.1.9] - 2026-03-07
+## [0.1.9] - 2026-03-09
 
 ### Added
 - **Schema-driven live call tests** — for every tool that declares
   `inputSchema.properties` the plugin now auto-generates a set of valid
   inputs derived entirely from the schema and calls the tool with each,
-  asserting the response matches `outputSchema` (or is a valid JSON-RPC
-  result when no `outputSchema` is present).  Tests are named
-  `test_{tool_name}_schema_{n}` and marked `mcp_tools_schema`.
+  asserting a valid (non-error) response.  If the tool also declares an
+  `outputSchema`, the response is additionally validated against its
+  declared field types.  Tests are named `test_{tool_name}_schema_{n}`
+  and marked `mcp_tools_schema`.
 - **`generate_schema_cases(input_schema)`** — new public helper that turns a
   JSON Schema `inputSchema` into a list of valid input dicts.  One *basic*
   case uses the simplest valid value for every required field; subsequent
@@ -41,8 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `test_schema_driven_enum_tests_generated_and_pass`,
   `test_schema_driven_format_tests_generated_and_pass`.
 - **`mcp_tools_schema` pytest marker** registered for schema-driven tests.
+- **`_SESSION_CACHE`** — module-level dict that caches MCP session headers
+  per `(base_url, endpoint)` pair, eliminating redundant `initialize`
+  handshakes within a single pytest run.
 - **`docs/index.md`** updated with a *Schema-Driven Live Call Tests* section
   and an updated test-generation table.
+
+### Fixed
+- Optional `enum` fields (not in `required`) are now included in schema test
+  variation — previously, only required fields were exercised, causing tests
+  with a constant non-enum value to be sent for optional enum parameters.
+- `object`-typed fields that declare `required` sub-fields are now skipped
+  during schema case generation instead of generating an empty `{}` value
+  that most servers reject as invalid.
 
 
 ## [0.1.8] - 2026-03-05

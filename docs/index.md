@@ -126,7 +126,7 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_input_schema_field_descriptions` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_input_schema_field_types` | — | Per tool: tool has `inputSchema.properties` |
 | `test_{tool}_example_{n}` | — | Per tool per example: tool has `inputSchema.examples` (filtered by `readOnlyHint` when `--mcp-tools-production` or `--mcp-tools-read-only` is set) |
-| `test_{tool}_schema_{n}` | — | Per tool: tool has `inputSchema.properties` **and** `outputSchema`; auto-generated from field types (marked `mcp_tools_schema`) |
+| `test_{tool}_schema_{n}` | — | Per tool: tool has `inputSchema.properties`; auto-generated from field types (marked `mcp_tools_schema`) |
 | `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `inputSchema.examples` |
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
 
@@ -199,10 +199,11 @@ This would generate `test_get_greeting_example_0` and
 
 ### Schema-Driven Live Call Tests
 
-For every tool that declares both `inputSchema.properties` **and**
-`outputSchema`, the plugin automatically generates a set of valid inputs
-derived from the schema (marked `mcp_tools_schema`) and calls the tool with
-each one, verifying the response against `outputSchema`.
+For every tool that declares `inputSchema.properties`, the plugin automatically
+generates a set of valid inputs derived from the schema (marked `mcp_tools_schema`)
+and calls the tool with each one, asserting a valid (non-error) response. If the
+tool also declares an `outputSchema`, the response is additionally validated against
+its declared field types.
 
 Tests are named `test_{tool_name}_schema_{n}` (0-based index).  The first case
 (`schema_0`) uses the simplest valid value for every required field ("basic");

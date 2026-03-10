@@ -1276,12 +1276,6 @@ def pytest_collection_modifyitems(session, config, items):
 
             output_schema = tool.get("outputSchema") or {}
             output_properties = output_schema.get("properties", {})
-            # Only generate schema-driven tests for tools that declare an
-            # outputSchema — without one there is nothing to validate in the
-            # response, and calling tools with auto-generated inputs on servers
-            # that do not fully implement tools/call causes spurious failures.
-            if not output_properties:
-                continue
             safe_name = tool_name.replace("-", "_").replace(" ", "_")
 
             for idx, case_input in enumerate(schema_cases):
