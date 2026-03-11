@@ -161,6 +161,35 @@ def _post_tools_call(base_url, tool_name, arguments, endpoint="/mcp"):
     return _parse_mcp_response(response)
 
 
+def _post_raw_request(base_url, body, endpoint="/mcp"):
+    """Send a raw JSON-RPC POST and return the parsed response without raising.
+
+    Unlike :func:`_post_tools_call`, this function does **not** call
+    ``raise_for_status``, so callers can inspect JSON-RPC error responses
+    (e.g. -32600, -32601, -32602) that arrive with a 4xx HTTP status.
+
+    Args:
+        base_url: MCP server base URL.
+        body: JSON-serialisable dict to send as the request body.
+        endpoint: MCP endpoint path (default ``/mcp``).
+
+    Returns:
+        Parsed JSON response dict, or empty dict when parsing fails.
+    """
+    session_extra = _establish_session(base_url, endpoint)
+    headers = {**_MCP_HEADERS, **session_extra}
+    try:
+        response = requests.post(
+            f"{base_url}{endpoint}",
+            json=body,
+            headers=headers,
+            timeout=10,
+        )
+        return _parse_mcp_response(response)
+    except Exception:
+        return {}
+
+
 _JSON_SCHEMA_TYPE_TO_PYTHON = {
     "string": str,
     "number": (int, float),
@@ -318,6 +347,76 @@ def _field_values(field_schema):
         return [None]
 
     return []
+
+
+def _field_is_non_trivially_typed(field_schema):
+    """Return True if a field has a type constraint beyond a plain string.
+
+    Used to filter which tools should have invalid-input tests generated.
+    Plain strings (type "string" with no format and no enum) offer no signal
+    about server-side validation — any server can accept or reject them.
+    Fields with richer constraints (integers, enums, formatted strings,
+    booleans, objects, arrays) are far more likely to be actively validated.
+
+    Args:
+        field_schema: A JSON Schema property descriptor dict.
+
+    Returns:
+        True when the field has a non-trivial type constraint, False otherwise.
+    """
+    if field_schema.get("enum"):
+        return True
+    field_type = field_schema.get("type")
+    if field_type not in (None, "string"):
+        return True
+    if field_type == "string" and field_schema.get("format"):
+        return True
+    return False
+
+
+def _invalid_value_for_field(field_schema):
+    """Return a value that is invalid for the given JSON Schema field descriptor.
+
+    Chooses a value whose type or format violates the schema so that a strictly
+    validating server should return -32602.  For enum fields the value has the
+    correct base type but is not in the allowed set.
+
+    Args:
+        field_schema: A JSON Schema property descriptor dict.
+
+    Returns:
+        An invalid Python value, or ``None`` if no invalid value can be
+        determined for this field.
+    """
+    enum = field_schema.get("enum")
+    if enum:
+        return "__invalid__"  # correct type but not in enum
+
+    field_type = field_schema.get("type")
+    field_format = field_schema.get("format")
+
+    if field_type == "string":
+        if field_format == "email":
+            return "claude@ai"  # missing TLD dot — fails email regex
+        if field_format == "uri":
+            return "not-a-url"
+        if field_format:
+            return "not-a-valid-format-value"
+        return 42  # number for a plain string field
+
+    if field_type in ("number", "integer"):
+        return "not-a-number"
+
+    if field_type == "boolean":
+        return "not-a-boolean"
+
+    if field_type == "array":
+        return "not-an-array"
+
+    if field_type == "object":
+        return "not-an-object"
+
+    return None
 
 
 def generate_schema_cases(input_schema):
@@ -694,6 +793,14 @@ def pytest_configure(config):
         "markers",
         "mcp_tools_strict: MCP tools strict-mode compliance tests",
     )
+    config.addinivalue_line(
+        "markers",
+        "mcp_tools_invalid_input: MCP tools per-tool invalid-input error tests",
+    )
+    config.addinivalue_line(
+        "markers",
+        "mcp_tools_protocol: MCP tools protocol-level error tests",
+    )
 
     # If --mcp-tools flag is provided, discover endpoints
     base_url = config.getoption("--mcp-tools")
@@ -808,6 +915,9 @@ def pytest_configure(config):
         # the full tool list for per-tool test generation.
         config._mcp_tools_has_annotations = False
         config._mcp_tools_tools_list = []
+        # Probe: does the server return -32601 for an unknown method?
+        # Only generate test_method_not_found for servers that do.
+        config._mcp_tools_server_returns_method_not_found = False
         if "/mcp" in endpoints_found:
             try:
                 anno_result = _post_tools_list(base_url, "/mcp")
@@ -819,6 +929,18 @@ def pytest_configure(config):
                     config._mcp_tools_tools_list = tools_list
                     if any("annotations" in t for t in tools_list):
                         config._mcp_tools_has_annotations = True
+            except Exception:
+                pass
+            try:
+                probe = requests.post(
+                    f"{base_url}/mcp",
+                    json={"jsonrpc": "2.0", "id": 1, "method": "tools/execute"},
+                    headers=_MCP_HEADERS,
+                    timeout=5,
+                )
+                probe_body = _parse_mcp_response(probe)
+                if probe_body.get("error", {}).get("code") == -32601:
+                    config._mcp_tools_server_returns_method_not_found = True
             except Exception:
                 pass
 
@@ -1397,6 +1519,192 @@ def pytest_collection_modifyitems(session, config, items):
                 )
                 schema_item.add_marker(pytest.mark.mcp_tools_strict)
                 test_items.append(schema_item)
+
+        # --- per-tool missing-required-field tests (-32602) ---
+        # For each required field, generate a test that omits that field and
+        # expects the server to return -32602.
+        # Only generated for tools that:
+        #   1. Have no outputSchema (tools with outputSchema are typically
+        #      designed to accept any input, e.g. schema-driven servers).
+        #   2. Have at least one required field with a non-trivial type
+        #      constraint (integer, enum, or string-with-format).  Plain-string
+        #      fields alone do not signal strict server-side validation.
+        for tool in tools_list:
+            tool_name = tool.get("name", "")
+            if not tool_name:
+                continue
+            if tool.get("outputSchema"):
+                continue
+            input_schema = tool.get("inputSchema", {})
+            properties = input_schema.get("properties", {})
+            required_fields = input_schema.get("required", [])
+            if not required_fields or not properties:
+                continue
+            if not any(
+                _field_is_non_trivially_typed(properties.get(f, {}))
+                for f in required_fields
+            ):
+                continue
+
+            safe_name = tool_name.replace("-", "_").replace(" ", "_")
+
+            # Build the base set of valid arguments for all required fields.
+            base_args = {}
+            for field in required_fields:
+                field_schema = properties.get(field)
+                if field_schema is None:
+                    continue
+                values = _field_values(field_schema)
+                if values:
+                    base_args[field] = values[0]
+
+            for field in required_fields:
+                if field not in base_args:
+                    continue
+
+                def make_missing_field_test(url, tname, fname, bargs, endpoint="/mcp"):
+                    def test_func():
+                        """Omit one required field; expect -32602 Invalid Params."""
+                        args = {k: v for k, v in bargs.items() if k != fname}
+                        resp = _post_raw_request(url, {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "tools/call",
+                            "params": {"name": tname, "arguments": args},
+                        }, endpoint)
+                        error = resp.get("error", {})
+                        assert error.get("code") == -32602, (
+                            f"Tool '{tname}' with missing field '{fname}' expected"
+                            f" JSON-RPC error -32602 but got: {resp!r}"
+                        )
+                    return test_func
+
+                test_name = f"test_{safe_name}_missing_{field}"
+                test_func = make_missing_field_test(base_url, tool_name, field, base_args)
+                test_func.__name__ = test_name
+                item = pytest.Function.from_parent(module, name=test_name, callobj=test_func)
+                item.add_marker(pytest.mark.mcp_tools_invalid_input)
+                test_items.append(item)
+
+        # --- per-tool wrong-type tests (-32602) ---
+        # For each field in inputSchema properties, generate a test that sends
+        # an invalid value for that field and expects -32602.
+        # Same selection criteria as the missing-field tests (no outputSchema,
+        # at least one non-trivially-typed required field).
+        for tool in tools_list:
+            tool_name = tool.get("name", "")
+            if not tool_name:
+                continue
+            if tool.get("outputSchema"):
+                continue
+            input_schema = tool.get("inputSchema", {})
+            properties = input_schema.get("properties", {})
+            required_fields = input_schema.get("required", [])
+            if not properties:
+                continue
+            if not any(
+                _field_is_non_trivially_typed(properties.get(f, {}))
+                for f in required_fields
+            ):
+                continue
+
+            safe_name = tool_name.replace("-", "_").replace(" ", "_")
+
+            # Build base valid args for all required fields.
+            base_args = {}
+            for field in required_fields:
+                field_schema = properties.get(field)
+                if field_schema is None:
+                    continue
+                values = _field_values(field_schema)
+                if values:
+                    base_args[field] = values[0]
+
+            for field, field_schema in properties.items():
+                invalid_value = _invalid_value_for_field(field_schema)
+                if invalid_value is None:
+                    continue
+
+                def make_wrong_type_test(url, tname, fname, bargs, inv_val, endpoint="/mcp"):
+                    def test_func():
+                        """Send wrong-typed field value; expect -32602 Invalid Params."""
+                        args = {**bargs, fname: inv_val}
+                        resp = _post_raw_request(url, {
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "tools/call",
+                            "params": {"name": tname, "arguments": args},
+                        }, endpoint)
+                        error = resp.get("error", {})
+                        assert error.get("code") == -32602, (
+                            f"Tool '{tname}' with wrong-type field '{fname}'"
+                            f" (value={inv_val!r}) expected JSON-RPC error -32602"
+                            f" but got: {resp!r}"
+                        )
+                    return test_func
+
+                test_name = f"test_{safe_name}_wrong_type_{field}"
+                test_func = make_wrong_type_test(
+                    base_url, tool_name, field, base_args, invalid_value
+                )
+                test_func.__name__ = test_name
+                item = pytest.Function.from_parent(module, name=test_name, callobj=test_func)
+                item.add_marker(pytest.mark.mcp_tools_invalid_input)
+                test_items.append(item)
+
+        # --- server-level protocol error tests ---
+        # test_invalid_request: send tools/call with params=null → expect -32600
+        # test_method_not_found: send unknown method → expect -32601 (only when
+        # the server was probed to return -32601 for unknown methods)
+        if "/mcp" in endpoints:
+            def make_invalid_request_test(url, endpoint="/mcp"):
+                def test_invalid_request():
+                    """Send tools/call with params=null; expect -32600 Invalid Request."""
+                    resp = _post_raw_request(url, {
+                        "jsonrpc": "2.0",
+                        "id": 99,
+                        "method": "tools/call",
+                        "params": None,
+                    }, endpoint)
+                    error = resp.get("error", {})
+                    assert error.get("code") == -32600, (
+                        f"Expected JSON-RPC error -32600 for null params but got: {resp!r}"
+                    )
+                return test_invalid_request
+
+            invalid_req_func = make_invalid_request_test(base_url)
+            invalid_req_func.__name__ = "test_invalid_request"
+            invalid_req_item = pytest.Function.from_parent(
+                module, name="test_invalid_request", callobj=invalid_req_func
+            )
+            invalid_req_item.add_marker(pytest.mark.mcp_tools_protocol)
+            test_items.append(invalid_req_item)
+
+            server_returns_method_not_found = getattr(
+                config, "_mcp_tools_server_returns_method_not_found", False
+            )
+            if server_returns_method_not_found:
+                def make_method_not_found_test(url, endpoint="/mcp"):
+                    def test_method_not_found():
+                        """Send unknown JSON-RPC method; expect -32601 Method Not Found."""
+                        resp = _post_raw_request(url, {
+                            "jsonrpc": "2.0",
+                            "id": 99,
+                            "method": "tools/execute",
+                        }, endpoint)
+                        error = resp.get("error", {})
+                        assert error.get("code") == -32601, (
+                            f"Expected JSON-RPC error -32601 for unknown method but got: {resp!r}"
+                        )
+                    return test_method_not_found
+
+                method_nf_func = make_method_not_found_test(base_url)
+                method_nf_func.__name__ = "test_method_not_found"
+                method_nf_item = pytest.Function.from_parent(
+                    module, name="test_method_not_found", callobj=method_nf_func
+                )
+                method_nf_item.add_marker(pytest.mark.mcp_tools_protocol)
+                test_items.append(method_nf_item)
 
     # Add all MCP tools test items to the collection
     items.extend(test_items)
