@@ -7,10 +7,18 @@
 
 # ✨ Introduction
 
-This is an opinionated tool for testing MCP servers live.
-The guiding philosphy is that documentation is critical for Agent/LLM use, just like it has been for humans.
-It checks that the schemas and the examples match and return expected codes and messages when called.
+🤖 **Your MCP server is only as good as what it tells the LLM.**
 
+`pytest-mcp-tools` tests your MCP servers live — checking that schemas are correct,
+examples actually work and match the schema,
+and incorrect inputs generate errors.
+The guiding principle is: good documentation reveals what the user needs to know,
+whether the user is a human or an LLM or an agent.
+
+This is meant to be run in a staging environment, right before an MCP server is deployed.
+It can also run in production with the `--mcp-tools-production=true` set, it will then
+call only the tools annotated as read-only. However, it does not support
+authentication currently.
 
 ```
 pytest --mcp-tools=http://localhost:8000
@@ -55,10 +63,21 @@ docker-image-1  | INFO:     172.28.0.3:39934 - "POST /mcp HTTP/1.1" 200 OK
 ```
 
 # Reporting Issues
-If you tested this on your server, and think that there is an issue, just give me the docker image of your server in the issue, and tell me what you are expecting, what you got.
+If you tested this on your server, and think that there is an issue,
+just give me the docker image of your server in the issue,
+and tell me what you are expecting, what you got.
+If I can run your image locally, I will be able to test it,
+and make it work for your use case.
 
-If you don't have a docker hub image, give me a minimal example. That's all I need.
+If you don't have a docker hub image, give me a minimal example.
+I will add a mock server with your minimal example to the testing harness.
 
+
+# Future Work
+
+I have two plans:
+1. Run it as a container. In this mode, it will also use LLM-as-a-judge for additional tests, to make sure that descriptions and error messages make sense.
+2. I want to add authotization, but I need study what is used commonly, first. Add an issue if you have a request.
 
 # Features
 
