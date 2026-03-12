@@ -6,6 +6,54 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.0] - 2026-03-10
+
+### Added
+- **Invalid-input error tests (`mcp_tools_invalid_input`)** — for tools that
+  declare `inputSchema` with at least one non-trivially-typed required field
+  (integer, boolean, enum, or string with a format keyword) and no `outputSchema`,
+  the plugin now generates:
+  - `test_{tool}_missing_{field}` — omits one required field per test and
+    asserts the server returns JSON-RPC error `-32602` (Invalid Params).
+  - `test_{tool}_wrong_type_{field}` — sends an invalid-typed value for each
+    field and asserts `-32602`.  Invalid values: integer → `"not-a-number"`,
+    plain string → `42`, email → `"claude@ai"`, uri → `"not-a-url"`,
+    enum → `"__invalid__"`, boolean → `"not-a-boolean"`.
+- **Protocol-error tests (`mcp_tools_protocol`)** — always generated when an
+  `/mcp` endpoint is found:
+  - `test_invalid_request` — sends `tools/call` with `params: null` and asserts
+    the server returns `-32600` (Invalid Request).
+  - `test_method_not_found` — sends the unknown method `tools/execute` and
+    asserts `-32601` (Method Not Found); only generated for servers that
+    are probed to return `-32601` for unknown methods.
+- **`_field_is_non_trivially_typed(field_schema)`** — helper that returns `True`
+  when a field has a type beyond a plain string (integer, boolean, enum, or
+  string-with-format).  Used to filter which tools receive invalid-input tests.
+- **`_invalid_value_for_field(field_schema)`** — helper that returns the
+  wrong-type test value for a given JSON Schema field descriptor.
+- **`_post_raw_request(base_url, body, endpoint)`** — sends a raw JSON-RPC POST
+  without calling `raise_for_status()`, enabling callers to inspect error
+  responses with 4xx HTTP status codes.
+- **Two new pytest markers**: `mcp_tools_invalid_input` and `mcp_tools_protocol`.
+- **Two new mock servers** for integration testing:
+  - `strict_validation_server` — validates all inputs and returns proper error
+    codes (`-32602`, `-32601`, `-32600`).
+  - `no_validation_server` — same schema but accepts any arguments without
+    validation (used to test that missing-field/wrong-type tests correctly fail
+    when the server does not validate).
+
+### Tests added
+- `test_missing_required_field_tests_generated_and_pass` — strict server.
+- `test_missing_required_field_tests_fail_on_nonvalidating_server` — no-validation server.
+- `test_wrong_type_tests_generated_and_pass` — strict server.
+- `test_wrong_type_tests_fail_on_nonvalidating_server` — no-validation server.
+- `test_invalid_request_test_generated_and_pass` — strict server.
+- `test_method_not_found_test_generated_and_pass` — strict server.
+
+### Docs updated
+- `docs/index.md`: added "Invalid-Input Error Tests" and "Protocol-Error Tests"
+  sections; updated generated-test table with four new rows.
+
 ## [0.1.9] - 2026-03-09
 
 ### Added

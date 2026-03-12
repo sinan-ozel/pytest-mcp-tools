@@ -129,6 +129,10 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_schema_{n}` | — | Per tool: tool has `inputSchema.properties`; auto-generated from field types (marked `mcp_tools_schema`) |
 | `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `inputSchema.examples` |
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
+| `test_{tool}_missing_{field}` | — | Per tool per required field: tool has no `outputSchema` and has ≥1 non-trivially-typed required field; expects `-32602` (marked `mcp_tools_invalid_input`) |
+| `test_{tool}_wrong_type_{field}` | — | Per tool per field: same selection criteria as above; sends wrong-typed value, expects `-32602` (marked `mcp_tools_invalid_input`) |
+| `test_invalid_request` | ✅ | HTTP endpoint found; sends `tools/call` with `params: null`, expects `-32600` (marked `mcp_tools_protocol`) |
+| `test_method_not_found` | — | HTTP endpoint found and server returns `-32601` for unknown methods; sends `tools/execute`, expects `-32601` (marked `mcp_tools_protocol`) |
 
 ### Example-Based Live Call Tests
 
@@ -282,6 +286,54 @@ Example of a valid annotation:
   }
 }
 ```
+
+### Invalid-Input Error Tests
+
+For tools that declare `inputSchema` with at least one required field that uses
+a non-trivial type constraint (integer, boolean, enum, or a string with a format
+keyword such as `email` or `uri`), the plugin generates two families of tests
+to verify that the server correctly rejects malformed requests with JSON-RPC
+error code `-32602` (Invalid Params).
+
+These tests are only generated for tools that do **not** declare an
+`outputSchema`.  Tools with an `outputSchema` are typically designed to accept
+any structurally valid call and test their outputs; invalid-input rejection
+belongs to the server layer rather than individual tool semantics.
+
+#### Missing-required-field tests (`mcp_tools_invalid_input`)
+
+One test per required field, named `test_{tool_name}_missing_{field}`.  Each
+test sends a `tools/call` request with that field omitted.  The test passes when
+the server returns a JSON-RPC error with code `-32602`.
+
+#### Wrong-type tests (`mcp_tools_invalid_input`)
+
+One test per field in `inputSchema.properties`, named
+`test_{tool_name}_wrong_type_{field}`.  Each test sends the field with an
+invalid value:
+
+| Field type / constraint | Invalid value sent |
+|---|---|
+| `string` (no format) | `42` (integer) |
+| `string` format `email` | `"claude@ai"` (malformed — missing TLD dot) |
+| `string` format `uri` | `"not-a-url"` |
+| `string` with other format | `"not-a-valid-format-value"` |
+| `integer` or `number` | `"not-a-number"` (string) |
+| `boolean` | `"not-a-boolean"` (string) |
+| `array` | `"not-an-array"` (string) |
+| `object` | `"not-an-object"` (string) |
+| `enum` | `"__invalid__"` (string not in the declared set) |
+
+### Protocol-Error Tests
+
+The plugin always generates `test_invalid_request` (marked `mcp_tools_protocol`)
+when an `/mcp` endpoint is found.  It sends a `tools/call` request with
+`params: null` and asserts the server returns JSON-RPC error code `-32600`
+(Invalid Request).
+
+`test_method_not_found` (also `mcp_tools_protocol`) is generated when the server
+is probed to return `-32601` for an unknown method.  The test sends
+`tools/execute` and asserts the response code is `-32601` (Method Not Found).
 
 ## Supported Server Types
 
