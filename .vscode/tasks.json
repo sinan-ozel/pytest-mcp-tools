@@ -169,6 +169,7 @@
       "description": "Select Docker Hub image to test",
       "options": [
         "sinanozel/spell-card-generator:0.4.2",
+        "sinanozel/spell-card-generator:0.4.4",
         "formulahendry/mcp-server-code-runner-streamable-http:latest",
       ],
       "default": "sinanozel/spell-card-generator:0.4.2"
