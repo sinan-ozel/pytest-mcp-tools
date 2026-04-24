@@ -72,6 +72,12 @@ and make it work for your use case.
 If you don't have a docker hub image, give me a minimal example.
 I will add a mock server with your minimal example to the testing harness.
 
+## Typical Concerns
+
+(I am just writing this down from personal experience working on MCP servers.)
+
+* If the tests fail because this is is sending fields with `null` values, simply use Pydantic BaseModels with explicit format to explain that they are not allowed `null`. The checker validates, as per the MCP standard.
+
 
 # Future Work
 
