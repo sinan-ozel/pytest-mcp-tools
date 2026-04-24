@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pytest-mcp-tools"
 dynamic = ["version"]
-description = ""
+description = "`pytest --mcp-tools` an opinionated black box tester to call a live MCP server and test it live against its own contracts"
 readme = "README.md"
 authors = [
     { name = "Sinan Ozel", email = "coding@sinan.slmail.me" },
