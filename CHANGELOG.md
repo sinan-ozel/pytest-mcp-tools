@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Protocol-error tests (`mcp_tools_protocol`)** — always generated when an
   `/mcp` endpoint is found:
   - `test_invalid_request` — sends `tools/call` with `params: null` and asserts
-    the server returns `-32600` (Invalid Request).
+    the server returns `-32600` or `-32602` (Invalid Request/Invalid Params).
   - `test_method_not_found` — sends the unknown method `tools/execute` and
     asserts `-32601` (Method Not Found); only generated for servers that
     are probed to return `-32601` for unknown methods.

@@ -2354,30 +2354,81 @@ def test_invalid_request_test_generated_and_pass():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_invalid_request" in output
-    ), (
+    assert "test_invalid_request" in output, (
         f"Expected test_invalid_request in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
 
-    assert (
-        "PASSED" in output and "test_invalid_request" in output
-    ), f"Expected test_invalid_request to pass, got:\n{output}"
+    assert "PASSED" in output and "test_invalid_request" in output, (
+        f"Expected test_invalid_request to pass, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected test_invalid_request to pass on strict server, "
         f"got exit code: {result.returncode}\n{output}"
     )
 
-    print("✅ test_invalid_request_test_generated_and_pass: test passed", flush=True)
+    print(
+        "✅ test_invalid_request_test_generated_and_pass: test passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_request_test_passes_on_incorrect_error_server():
+    """Test that test_invalid_request passes on a server that returns -32602 for null params.
+
+    The incorrect_error_server returns -32602 (Invalid Params) instead of -32600
+    (Invalid Request) for params: null. The test must accept both error codes.
+    """
+    print(
+        "\n🔍 Testing invalid-request test passes on server returning -32602...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://incorrect-error-server:8000",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert "test_invalid_request" in output, (
+        f"Expected test_invalid_request in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    assert "PASSED" in output and "test_invalid_request" in output, (
+        f"Expected test_invalid_request to pass, got:\n{output}"
+    )
+
+    assert result.returncode == 0, (
+        f"Expected test_invalid_request to pass on incorrect-error server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_invalid_request_test_passes_on_incorrect_error_server: test passed",
+        flush=True,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Method not found test (-32601)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_method_not_found_test_generated_and_pass():

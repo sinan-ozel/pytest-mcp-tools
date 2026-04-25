@@ -131,7 +131,7 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
 | `test_{tool}_missing_{field}` | — | Per tool per required field: tool has no `outputSchema` and has ≥1 non-trivially-typed required field; expects `-32602` (marked `mcp_tools_invalid_input`) |
 | `test_{tool}_wrong_type_{field}` | — | Per tool per field: same selection criteria as above; sends wrong-typed value, expects `-32602` (marked `mcp_tools_invalid_input`) |
-| `test_invalid_request` | ✅ | HTTP endpoint found; sends `tools/call` with `params: null`, expects `-32600` (marked `mcp_tools_protocol`) |
+| `test_invalid_request` | ✅ | HTTP endpoint found; sends `tools/call` with `params: null`, expects `-32600` or `-32602` (marked `mcp_tools_protocol`) |
 | `test_method_not_found` | — | HTTP endpoint found and server returns `-32601` for unknown methods; sends `tools/execute`, expects `-32601` (marked `mcp_tools_protocol`) |
 
 ### Example-Based Live Call Tests
