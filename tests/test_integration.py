@@ -2,6 +2,7 @@
 
 import subprocess
 import time
+
 import pytest
 
 
@@ -27,9 +28,9 @@ def test_mcp_tools_flag_is_recognized():
     # Check that the flag is NOT unrecognized
     output = result.stdout
 
-    assert (
-        "unrecognized arguments: --mcp-tools" not in output
-    ), f"Plugin not loaded: --mcp-tools flag not recognized. Output:\n{output}"
+    assert "unrecognized arguments: --mcp-tools" not in output, (
+        f"Plugin not loaded: --mcp-tools flag not recognized. Output:\n{output}"
+    )
 
     print("✅ --mcp-tools flag is recognized", flush=True)
 
@@ -64,19 +65,19 @@ def test_basic_mcp_server_tools_discovered():
 
     # Check that MCP tools test was discovered and appears in output
     # Accept any endpoint pattern
-    assert (
-        "test_mcp_tools[POST" in output
-    ), f"Expected test_mcp_tools[POST ...] in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_mcp_tools[POST" in output, (
+        f"Expected test_mcp_tools[POST ...] in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that regular tests also ran
-    assert (
-        "test_samples" in output
-    ), f"Expected regular test files to be collected, got:\n{output}"
+    assert "test_samples" in output, (
+        f"Expected regular test files to be collected, got:\n{output}"
+    )
 
     # Check that some tests passed
-    assert (
-        "passed" in output.lower() or "PASSED" in output
-    ), f"Expected some tests to pass, got:\n{output}"
+    assert "passed" in output.lower() or "PASSED" in output, (
+        f"Expected some tests to pass, got:\n{output}"
+    )
 
     print("✅ MCP tools discovered and tests generated", flush=True)
 
@@ -112,19 +113,19 @@ def test_mcp_tools_run_alongside_regular_tests():
     output = result.stdout
 
     # Check that /mcp endpoint is found
-    assert (
-        "Found endpoint: /mcp" in output
-    ), f"Expected /mcp endpoint to be found, got:\n{output}"
+    assert "Found endpoint: /mcp" in output, (
+        f"Expected /mcp endpoint to be found, got:\n{output}"
+    )
 
     # Check that regular tests were collected and ran
-    assert (
-        "test_sample_addition" in output or "test_samples" in output
-    ), f"Expected regular test files to be collected, got:\n{output}"
+    assert "test_sample_addition" in output or "test_samples" in output, (
+        f"Expected regular test files to be collected, got:\n{output}"
+    )
 
     # Check that regular tests passed
-    assert (
-        "test_sample_addition" in output or "PASSED" in output
-    ), f"Expected regular tests to pass, got:\n{output}"
+    assert "test_sample_addition" in output or "PASSED" in output, (
+        f"Expected regular tests to pass, got:\n{output}"
+    )
 
     print("✅ MCP tools and regular tests run together", flush=True)
 
@@ -156,14 +157,14 @@ def test_empty_server_all_endpoints_404():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that /mcp endpoint was not found (404)
-    assert (
-        "Endpoint /mcp not found" in output
-    ), f"Expected /mcp endpoint not found, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "Endpoint /mcp not found" in output, (
+        f"Expected /mcp endpoint not found, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that no endpoints were discovered
-    assert (
-        "No MCP endpoints discovered" in output
-    ), f"Expected 'No MCP endpoints discovered' message, got:\n{output}"
+    assert "No MCP endpoints discovered" in output, (
+        f"Expected 'No MCP endpoints discovered' message, got:\n{output}"
+    )
 
     # Check that a failing test was created
     assert (
@@ -171,11 +172,14 @@ def test_empty_server_all_endpoints_404():
     ), f"Expected failing test to be created, got:\n{output}"
 
     # Check that pytest exited with error code when no endpoints found
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail (exit code != 0) when no endpoints found, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail (exit code != 0) when no endpoints found, got exit code: {result.returncode}"
+    )
 
-    print("✅ Empty server test shows endpoint 404, pytest failed as expected", flush=True)
+    print(
+        "✅ Empty server test shows endpoint 404, pytest failed as expected",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -185,7 +189,10 @@ def test_list_tools_from_basic_server():
     This test verifies that when --mcp-tools is used with a server that has endpoints,
     the plugin generates and runs a test_list_tools_from_basic_server test that passes.
     """
-    print("\n🔍 Testing dynamically generated list_tools test with basic server...", flush=True)
+    print(
+        "\n🔍 Testing dynamically generated list_tools test with basic server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -203,16 +210,19 @@ def test_list_tools_from_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_list_tools_from_basic_server was created and ran
-    assert (
-        "test_list_tools_from_basic_server" in output
-    ), f"Expected test_list_tools_from_basic_server in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_list_tools_from_basic_server" in output, (
+        f"Expected test_list_tools_from_basic_server in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
     assert (
         "PASSED" in output and "test_list_tools_from_basic_server" in output
     ), f"Expected test_list_tools_from_basic_server to pass, got:\n{output}"
 
-    print("✅ Dynamically generated list_tools test passed for basic server", flush=True)
+    print(
+        "✅ Dynamically generated list_tools test passed for basic server",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_empty_server_all_endpoints_404"])
@@ -222,7 +232,10 @@ def test_list_tools_from_empty_server_raises_error():
     This test verifies that when --mcp-tools is used with a server that has no endpoints,
     the plugin generates and runs a test_list_tools_from_empty_server_raises_error test that passes.
     """
-    print("\n🔍 Testing dynamically generated list_tools error test with empty server...", flush=True)
+    print(
+        "\n🔍 Testing dynamically generated list_tools error test with empty server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -240,16 +253,22 @@ def test_list_tools_from_empty_server_raises_error():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_list_tools_from_empty_server_raises_error was created and ran
-    assert (
-        "test_list_tools_from_empty_server_raises_error" in output
-    ), f"Expected test_list_tools_from_empty_server_raises_error in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_list_tools_from_empty_server_raises_error" in output, (
+        f"Expected test_list_tools_from_empty_server_raises_error in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed (it should pass because it expects an error)
     assert (
-        "PASSED" in output and "test_list_tools_from_empty_server_raises_error" in output
-    ), f"Expected test_list_tools_from_empty_server_raises_error to pass, got:\n{output}"
+        "PASSED" in output
+        and "test_list_tools_from_empty_server_raises_error" in output
+    ), (
+        f"Expected test_list_tools_from_empty_server_raises_error to pass, got:\n{output}"
+    )
 
-    print("✅ Dynamically generated list_tools error test passed for empty server", flush=True)
+    print(
+        "✅ Dynamically generated list_tools error test passed for empty server",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -259,7 +278,10 @@ def test_tools_have_descriptions_passes_with_basic_server():
     This test verifies that when tools have proper description fields,
     the dynamically generated test_tools_have_descriptions test passes.
     """
-    print("\n🔍 Testing tools have descriptions check with basic server...", flush=True)
+    print(
+        "\n🔍 Testing tools have descriptions check with basic server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -277,16 +299,19 @@ def test_tools_have_descriptions_passes_with_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_descriptions was created and ran
-    assert (
-        "test_tools_have_descriptions" in output
-    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_descriptions" in output, (
+        f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
-    assert (
-        "PASSED" in output and "test_tools_have_descriptions" in output
-    ), f"Expected test_tools_have_descriptions to pass, got:\n{output}"
+    assert "PASSED" in output and "test_tools_have_descriptions" in output, (
+        f"Expected test_tools_have_descriptions to pass, got:\n{output}"
+    )
 
-    print("✅ test_tools_have_descriptions passed for basic server with descriptions", flush=True)
+    print(
+        "✅ test_tools_have_descriptions passed for basic server with descriptions",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -296,11 +321,19 @@ def test_tools_have_descriptions_fails_without_descriptions():
     This test verifies that when tools are missing description fields,
     the dynamically generated test_tools_have_descriptions test fails with a clear message.
     """
-    print("\n🔍 Testing tools have descriptions check with server missing descriptions...", flush=True)
+    print(
+        "\n🔍 Testing tools have descriptions check with server missing descriptions...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://no-descriptions-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://no-descriptions-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -314,26 +347,30 @@ def test_tools_have_descriptions_fails_without_descriptions():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_descriptions was created and ran
-    assert (
-        "test_tools_have_descriptions" in output
-    ), f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_descriptions" in output, (
+        f"Expected test_tools_have_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
-    assert (
-        "FAILED" in output and "test_tools_have_descriptions" in output
-    ), f"Expected test_tools_have_descriptions to fail, got:\n{output}"
+    assert "FAILED" in output and "test_tools_have_descriptions" in output, (
+        f"Expected test_tools_have_descriptions to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions missing description
     assert (
-        "missing description" in output.lower() or "description field" in output.lower()
+        "missing description" in output.lower()
+        or "description field" in output.lower()
     ), f"Expected failure message about missing description, got:\n{output}"
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when descriptions are missing, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when descriptions are missing, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_tools_have_descriptions correctly failed for server without descriptions", flush=True)
+    print(
+        "✅ test_tools_have_descriptions correctly failed for server without descriptions",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -361,9 +398,9 @@ def test_created_tests_message():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that "created X tests" message appears (now expecting 5 tests)
-    assert (
-        "created 5 tests" in output
-    ), f"Expected 'created 5 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "created 5 tests" in output, (
+        f"Expected 'created 5 tests' message in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     print("✅ 'created 5 tests' message appears correctly", flush=True)
 
@@ -375,7 +412,9 @@ def test_tools_have_names_passes_with_basic_server():
     This test verifies that when tools have proper name fields,
     the dynamically generated test_tools_have_names test passes.
     """
-    print("\n🔍 Testing tools have names check with basic server...", flush=True)
+    print(
+        "\n🔍 Testing tools have names check with basic server...", flush=True
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -393,16 +432,19 @@ def test_tools_have_names_passes_with_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_names was created and ran
-    assert (
-        "test_tools_have_names" in output
-    ), f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_names" in output, (
+        f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
-    assert (
-        "PASSED" in output and "test_tools_have_names" in output
-    ), f"Expected test_tools_have_names to pass, got:\n{output}"
+    assert "PASSED" in output and "test_tools_have_names" in output, (
+        f"Expected test_tools_have_names to pass, got:\n{output}"
+    )
 
-    print("✅ test_tools_have_names passed for basic server with names", flush=True)
+    print(
+        "✅ test_tools_have_names passed for basic server with names",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -412,7 +454,10 @@ def test_tools_have_names_fails_without_names():
     This test verifies that when tools are missing name fields,
     the dynamically generated test_tools_have_names test fails with a clear message.
     """
-    print("\n🔍 Testing tools have names check with server missing names...", flush=True)
+    print(
+        "\n🔍 Testing tools have names check with server missing names...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -430,26 +475,29 @@ def test_tools_have_names_fails_without_names():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_names was created and ran
-    assert (
-        "test_tools_have_names" in output
-    ), f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_names" in output, (
+        f"Expected test_tools_have_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
-    assert (
-        "FAILED" in output and "test_tools_have_names" in output
-    ), f"Expected test_tools_have_names to fail, got:\n{output}"
+    assert "FAILED" in output and "test_tools_have_names" in output, (
+        f"Expected test_tools_have_names to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions missing name
-    assert (
-        "missing name" in output.lower() or "name field" in output.lower()
-    ), f"Expected failure message about missing name, got:\n{output}"
+    assert "missing name" in output.lower() or "name field" in output.lower(), (
+        f"Expected failure message about missing name, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when names are missing, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when names are missing, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_tools_have_names correctly failed for server without names", flush=True)
+    print(
+        "✅ test_tools_have_names correctly failed for server without names",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -461,7 +509,10 @@ def test_hybrid_server_supports_both_http_and_stdio():
     2. Has STDIO communication working
     3. Creates tests for both transports
     """
-    print("\n🔍 Testing hybrid server with both HTTP and STDIO support...", flush=True)
+    print(
+        "\n🔍 Testing hybrid server with both HTTP and STDIO support...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -479,19 +530,17 @@ def test_hybrid_server_supports_both_http_and_stdio():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that HTTP endpoint was discovered
-    assert (
-        "Found endpoint: /mcp" in output
-    ), f"Expected /mcp endpoint to be found, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "Found endpoint: /mcp" in output, (
+        f"Expected /mcp endpoint to be found, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that HTTP tests were created
-    assert (
-        "test_list_tools_from_basic_server" in output
-    ), f"Expected HTTP test to be created, got:\n{output}"
+    assert "test_list_tools_from_basic_server" in output, (
+        f"Expected HTTP test to be created, got:\n{output}"
+    )
 
     # Check that both tests passed
-    assert (
-        "PASSED" in output
-    ), f"Expected tests to pass, got:\n{output}"
+    assert "PASSED" in output, f"Expected tests to pass, got:\n{output}"
 
     print("✅ Hybrid server correctly detected HTTP support", flush=True)
 
@@ -503,7 +552,10 @@ def test_tools_have_unique_names_passes_with_basic_server():
     This test verifies that when all tools have distinct name fields,
     the dynamically generated test_tools_have_unique_names test passes.
     """
-    print("\n🔍 Testing tools have unique names check with basic server...", flush=True)
+    print(
+        "\n🔍 Testing tools have unique names check with basic server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -521,16 +573,19 @@ def test_tools_have_unique_names_passes_with_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_unique_names was created and ran
-    assert (
-        "test_tools_have_unique_names" in output
-    ), f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_unique_names" in output, (
+        f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
-    assert (
-        "PASSED" in output and "test_tools_have_unique_names" in output
-    ), f"Expected test_tools_have_unique_names to pass, got:\n{output}"
+    assert "PASSED" in output and "test_tools_have_unique_names" in output, (
+        f"Expected test_tools_have_unique_names to pass, got:\n{output}"
+    )
 
-    print("✅ test_tools_have_unique_names passed for basic server with unique names", flush=True)
+    print(
+        "✅ test_tools_have_unique_names passed for basic server with unique names",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -540,11 +595,19 @@ def test_tools_have_unique_names_fails_with_duplicate_names():
     This test verifies that when multiple tools share the same name field,
     the dynamically generated test_tools_have_unique_names test fails with a clear message.
     """
-    print("\n🔍 Testing tools have unique names check with server having duplicate names...", flush=True)
+    print(
+        "\n🔍 Testing tools have unique names check with server having duplicate names...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://duplicate-names-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://duplicate-names-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -558,26 +621,29 @@ def test_tools_have_unique_names_fails_with_duplicate_names():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_unique_names was created and ran
-    assert (
-        "test_tools_have_unique_names" in output
-    ), f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_unique_names" in output, (
+        f"Expected test_tools_have_unique_names in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
-    assert (
-        "FAILED" in output and "test_tools_have_unique_names" in output
-    ), f"Expected test_tools_have_unique_names to fail, got:\n{output}"
+    assert "FAILED" in output and "test_tools_have_unique_names" in output, (
+        f"Expected test_tools_have_unique_names to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions duplicate names
-    assert (
-        "duplicate" in output.lower() or "unique" in output.lower()
-    ), f"Expected failure message about duplicate names, got:\n{output}"
+    assert "duplicate" in output.lower() or "unique" in output.lower(), (
+        f"Expected failure message about duplicate names, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when tool names are not unique, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when tool names are not unique, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_tools_have_unique_names correctly failed for server with duplicate names", flush=True)
+    print(
+        "✅ test_tools_have_unique_names correctly failed for server with duplicate names",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -587,7 +653,10 @@ def test_tools_have_titles_passes_with_annotations_server():
     This test verifies that when all tools include a title in their annotations,
     the dynamically generated test_tools_have_titles test passes.
     """
-    print("\n🔍 Testing tools have titles check with annotations server...", flush=True)
+    print(
+        "\n🔍 Testing tools have titles check with annotations server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -605,16 +674,19 @@ def test_tools_have_titles_passes_with_annotations_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_titles was created and ran
-    assert (
-        "test_tools_have_titles" in output
-    ), f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_titles" in output, (
+        f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
-    assert (
-        "PASSED" in output and "test_tools_have_titles" in output
-    ), f"Expected test_tools_have_titles to pass, got:\n{output}"
+    assert "PASSED" in output and "test_tools_have_titles" in output, (
+        f"Expected test_tools_have_titles to pass, got:\n{output}"
+    )
 
-    print("✅ test_tools_have_titles passed for annotations server with titles", flush=True)
+    print(
+        "✅ test_tools_have_titles passed for annotations server with titles",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -625,7 +697,10 @@ def test_tools_have_titles_fails_without_titles():
     field, the dynamically generated test_tools_have_titles test fails with a
     clear message.
     """
-    print("\n🔍 Testing tools have titles check with no-titles server...", flush=True)
+    print(
+        "\n🔍 Testing tools have titles check with no-titles server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -643,26 +718,29 @@ def test_tools_have_titles_fails_without_titles():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tools_have_titles was created and ran
-    assert (
-        "test_tools_have_titles" in output
-    ), f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_tools_have_titles" in output, (
+        f"Expected test_tools_have_titles in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
-    assert (
-        "FAILED" in output and "test_tools_have_titles" in output
-    ), f"Expected test_tools_have_titles to fail, got:\n{output}"
+    assert "FAILED" in output and "test_tools_have_titles" in output, (
+        f"Expected test_tools_have_titles to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions missing title
-    assert (
-        "title" in output.lower()
-    ), f"Expected failure message about missing title, got:\n{output}"
+    assert "title" in output.lower(), (
+        f"Expected failure message about missing title, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when title is missing, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when title is missing, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_tools_have_titles correctly failed for server without titles", flush=True)
+    print(
+        "✅ test_tools_have_titles correctly failed for server without titles",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -694,9 +772,7 @@ def test_tool_annotations_are_consistent_passes_with_annotations_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tool_annotations_are_consistent was created and ran
-    assert (
-        "test_tool_annotations_are_consistent" in output
-    ), (
+    assert "test_tool_annotations_are_consistent" in output, (
         f"Expected test_tool_annotations_are_consistent in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
@@ -704,10 +780,7 @@ def test_tool_annotations_are_consistent_passes_with_annotations_server():
     # Check that the test passed
     assert (
         "PASSED" in output and "test_tool_annotations_are_consistent" in output
-    ), (
-        f"Expected test_tool_annotations_are_consistent to pass, "
-        f"got:\n{output}"
-    )
+    ), f"Expected test_tool_annotations_are_consistent to pass, got:\n{output}"
 
     print(
         "✅ test_tool_annotations_are_consistent passed for annotations server",
@@ -749,9 +822,7 @@ def test_tool_annotations_are_consistent_fails_with_conflicting_annotations():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that test_tool_annotations_are_consistent was created and ran
-    assert (
-        "test_tool_annotations_are_consistent" in output
-    ), (
+    assert "test_tool_annotations_are_consistent" in output, (
         f"Expected test_tool_annotations_are_consistent in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
@@ -759,21 +830,18 @@ def test_tool_annotations_are_consistent_fails_with_conflicting_annotations():
     # Check that the test failed
     assert (
         "FAILED" in output and "test_tool_annotations_are_consistent" in output
-    ), (
-        f"Expected test_tool_annotations_are_consistent to fail, "
-        f"got:\n{output}"
-    )
+    ), f"Expected test_tool_annotations_are_consistent to fail, got:\n{output}"
 
     # Check that the failure message mentions the conflicting hints
     assert (
-        "readOnly" in output or "readonly" in output.lower()
-        or "destructive" in output.lower() or "idempotent" in output.lower()
+        "readOnly" in output
+        or "readonly" in output.lower()
+        or "destructive" in output.lower()
+        or "idempotent" in output.lower()
     ), f"Expected failure message about conflicting hints, got:\n{output}"
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), (
+    assert result.returncode != 0, (
         f"Expected pytest to fail when annotation hints conflict, "
         f"got exit code: {result.returncode}"
     )
@@ -793,7 +861,10 @@ def test_input_schema_field_descriptions_passes_with_basic_server():
     where all inputSchema fields have descriptions, the dynamically generated
     per-tool test test_stream_message_input_schema_field_descriptions passes.
     """
-    print("\n🔍 Testing per-tool inputSchema field description check with basic server...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field description check with basic server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -811,16 +882,22 @@ def test_input_schema_field_descriptions_passes_with_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool test for stream_message was created and ran
-    assert (
-        "test_stream_message_input_schema_field_descriptions" in output
-    ), f"Expected test_stream_message_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_stream_message_input_schema_field_descriptions" in output, (
+        f"Expected test_stream_message_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
     assert (
-        "PASSED" in output and "test_stream_message_input_schema_field_descriptions" in output
-    ), f"Expected test_stream_message_input_schema_field_descriptions to pass, got:\n{output}"
+        "PASSED" in output
+        and "test_stream_message_input_schema_field_descriptions" in output
+    ), (
+        f"Expected test_stream_message_input_schema_field_descriptions to pass, got:\n{output}"
+    )
 
-    print("✅ test_stream_message_input_schema_field_descriptions passed for basic server", flush=True)
+    print(
+        "✅ test_stream_message_input_schema_field_descriptions passed for basic server",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -831,11 +908,19 @@ def test_input_schema_field_descriptions_fails_without_field_descriptions():
     where inputSchema properties are missing description fields, the dynamically generated
     per-tool test test_process_data_input_schema_field_descriptions fails with a clear message.
     """
-    print("\n🔍 Testing per-tool inputSchema field description check with no-field-descriptions server...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field description check with no-field-descriptions server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://no-field-descriptions-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://no-field-descriptions-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -849,26 +934,35 @@ def test_input_schema_field_descriptions_fails_without_field_descriptions():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool test for process_data was created and ran
-    assert (
-        "test_process_data_input_schema_field_descriptions" in output
-    ), f"Expected test_process_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_process_data_input_schema_field_descriptions" in output, (
+        f"Expected test_process_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
     assert (
-        "FAILED" in output and "test_process_data_input_schema_field_descriptions" in output
-    ), f"Expected test_process_data_input_schema_field_descriptions to fail, got:\n{output}"
+        "FAILED" in output
+        and "test_process_data_input_schema_field_descriptions" in output
+    ), (
+        f"Expected test_process_data_input_schema_field_descriptions to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions missing description on a field
     assert (
-        "missing description" in output.lower() or "description" in output.lower()
-    ), f"Expected failure message about missing field description, got:\n{output}"
+        "missing description" in output.lower()
+        or "description" in output.lower()
+    ), (
+        f"Expected failure message about missing field description, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when inputSchema field descriptions are missing, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when inputSchema field descriptions are missing, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_process_data_input_schema_field_descriptions correctly failed for server with fields missing descriptions", flush=True)
+    print(
+        "✅ test_process_data_input_schema_field_descriptions correctly failed for server with fields missing descriptions",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -879,7 +973,10 @@ def test_input_schema_field_descriptions_passes_with_annotations_server():
     where all inputSchema fields have descriptions, the dynamically generated
     per-tool test test_read_data_input_schema_field_descriptions passes.
     """
-    print("\n🔍 Testing per-tool inputSchema field description check with annotations server...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field description check with annotations server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -897,16 +994,22 @@ def test_input_schema_field_descriptions_passes_with_annotations_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool test for read_data was created and ran
-    assert (
-        "test_read_data_input_schema_field_descriptions" in output
-    ), f"Expected test_read_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_read_data_input_schema_field_descriptions" in output, (
+        f"Expected test_read_data_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
     assert (
-        "PASSED" in output and "test_read_data_input_schema_field_descriptions" in output
-    ), f"Expected test_read_data_input_schema_field_descriptions to pass, got:\n{output}"
+        "PASSED" in output
+        and "test_read_data_input_schema_field_descriptions" in output
+    ), (
+        f"Expected test_read_data_input_schema_field_descriptions to pass, got:\n{output}"
+    )
 
-    print("✅ test_read_data_input_schema_field_descriptions passed for annotations server", flush=True)
+    print(
+        "✅ test_read_data_input_schema_field_descriptions passed for annotations server",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_basic_mcp_server_tools_discovered"])
@@ -917,7 +1020,10 @@ def test_input_schema_field_types_passes_with_basic_server():
     where all inputSchema fields have valid types, the dynamically generated
     per-tool test test_stream_message_input_schema_field_types passes.
     """
-    print("\n🔍 Testing per-tool inputSchema field type check with basic server...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field type check with basic server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -935,16 +1041,22 @@ def test_input_schema_field_types_passes_with_basic_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool type test for stream_message was created and ran
-    assert (
-        "test_stream_message_input_schema_field_types" in output
-    ), f"Expected test_stream_message_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_stream_message_input_schema_field_types" in output, (
+        f"Expected test_stream_message_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test passed
     assert (
-        "PASSED" in output and "test_stream_message_input_schema_field_types" in output
-    ), f"Expected test_stream_message_input_schema_field_types to pass, got:\n{output}"
+        "PASSED" in output
+        and "test_stream_message_input_schema_field_types" in output
+    ), (
+        f"Expected test_stream_message_input_schema_field_types to pass, got:\n{output}"
+    )
 
-    print("✅ test_stream_message_input_schema_field_types passed for basic server", flush=True)
+    print(
+        "✅ test_stream_message_input_schema_field_types passed for basic server",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -956,11 +1068,19 @@ def test_input_schema_field_types_fails_with_invalid_field_types():
     generated per-tool test test_transform_data_input_schema_field_types fails with a
     clear message.
     """
-    print("\n🔍 Testing per-tool inputSchema field type check with invalid-field-types server...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field type check with invalid-field-types server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://invalid-field-types-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://invalid-field-types-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -974,26 +1094,32 @@ def test_input_schema_field_types_fails_with_invalid_field_types():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool type test for transform_data was created and ran
-    assert (
-        "test_transform_data_input_schema_field_types" in output
-    ), f"Expected test_transform_data_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_transform_data_input_schema_field_types" in output, (
+        f"Expected test_transform_data_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed
     assert (
-        "FAILED" in output and "test_transform_data_input_schema_field_types" in output
-    ), f"Expected test_transform_data_input_schema_field_types to fail, got:\n{output}"
+        "FAILED" in output
+        and "test_transform_data_input_schema_field_types" in output
+    ), (
+        f"Expected test_transform_data_input_schema_field_types to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions the type issue
-    assert (
-        "type" in output.lower()
-    ), f"Expected failure message about invalid or missing field type, got:\n{output}"
+    assert "type" in output.lower(), (
+        f"Expected failure message about invalid or missing field type, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when inputSchema field types are missing or invalid, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when inputSchema field types are missing or invalid, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_transform_data_input_schema_field_types correctly failed for server with invalid field types", flush=True)
+    print(
+        "✅ test_transform_data_input_schema_field_types correctly failed for server with invalid field types",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1004,7 +1130,10 @@ def test_input_schema_field_descriptions_fails_with_deeply_nested_schema():
     detects the missing description on the innermost (level 3) field of the nested_call
     tool in the deeply-nested server.
     """
-    print("\n🔍 Testing per-tool inputSchema field description check with deeply nested schema...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field description check with deeply nested schema...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1022,26 +1151,35 @@ def test_input_schema_field_descriptions_fails_with_deeply_nested_schema():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool description test for nested_call was created and ran
-    assert (
-        "test_nested_call_input_schema_field_descriptions" in output
-    ), f"Expected test_nested_call_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_nested_call_input_schema_field_descriptions" in output, (
+        f"Expected test_nested_call_input_schema_field_descriptions in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed (missing description on innermost field)
     assert (
-        "FAILED" in output and "test_nested_call_input_schema_field_descriptions" in output
-    ), f"Expected test_nested_call_input_schema_field_descriptions to fail, got:\n{output}"
+        "FAILED" in output
+        and "test_nested_call_input_schema_field_descriptions" in output
+    ), (
+        f"Expected test_nested_call_input_schema_field_descriptions to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions missing description
     assert (
-        "missing description" in output.lower() or "description" in output.lower()
-    ), f"Expected failure message about missing field description, got:\n{output}"
+        "missing description" in output.lower()
+        or "description" in output.lower()
+    ), (
+        f"Expected failure message about missing field description, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when innermost inputSchema field is missing a description, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when innermost inputSchema field is missing a description, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_nested_call_input_schema_field_descriptions correctly failed for deeply nested schema", flush=True)
+    print(
+        "✅ test_nested_call_input_schema_field_descriptions correctly failed for deeply nested schema",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1052,11 +1190,19 @@ def test_input_schema_field_types_fails_with_deeply_nested_invalid_type():
     detects the invalid type on the innermost (level 3) field of the nested_call
     tool in the deeply-nested-invalid-type server.
     """
-    print("\n🔍 Testing per-tool inputSchema field type check with deeply nested invalid type...", flush=True)
+    print(
+        "\n🔍 Testing per-tool inputSchema field type check with deeply nested invalid type...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://deeply-nested-invalid-type-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://deeply-nested-invalid-type-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1070,26 +1216,32 @@ def test_input_schema_field_types_fails_with_deeply_nested_invalid_type():
     print(f"STDERR:\n{stderr}\n")
 
     # Check that a per-tool type test for nested_call was created and ran
-    assert (
-        "test_nested_call_input_schema_field_types" in output
-    ), f"Expected test_nested_call_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_nested_call_input_schema_field_types" in output, (
+        f"Expected test_nested_call_input_schema_field_types in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # Check that the test failed (invalid type on innermost field)
     assert (
-        "FAILED" in output and "test_nested_call_input_schema_field_types" in output
-    ), f"Expected test_nested_call_input_schema_field_types to fail, got:\n{output}"
+        "FAILED" in output
+        and "test_nested_call_input_schema_field_types" in output
+    ), (
+        f"Expected test_nested_call_input_schema_field_types to fail, got:\n{output}"
+    )
 
     # Check that the failure message mentions the type issue
-    assert (
-        "type" in output.lower()
-    ), f"Expected failure message about invalid field type, got:\n{output}"
+    assert "type" in output.lower(), (
+        f"Expected failure message about invalid field type, got:\n{output}"
+    )
 
     # Check that pytest exited with error code
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when innermost inputSchema field has an invalid type, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when innermost inputSchema field has an invalid type, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_nested_call_input_schema_field_types correctly failed for deeply nested invalid type", flush=True)
+    print(
+        "✅ test_nested_call_input_schema_field_types correctly failed for deeply nested invalid type",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1104,7 +1256,10 @@ def test_example_tests_generated_and_pass():
     Without --mcp-tools-production or --mcp-tools-read-only, all four example
     tests must be generated and pass.
     """
-    print("\n🔍 Testing example test generation for all tools in examples-server...", flush=True)
+    print(
+        "\n🔍 Testing example test generation for all tools in examples-server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1120,27 +1275,30 @@ def test_example_tests_generated_and_pass():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_get_greeting_example_0" in output
-    ), f"Expected test_get_greeting_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_get_greeting_example_0" in output, (
+        f"Expected test_get_greeting_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_get_greeting_example_1" in output
-    ), f"Expected test_get_greeting_example_1 in output, got:\n{output}"
+    assert "test_get_greeting_example_1" in output, (
+        f"Expected test_get_greeting_example_1 in output, got:\n{output}"
+    )
 
-    assert (
-        "test_add_numbers_example_0" in output
-    ), f"Expected test_add_numbers_example_0 in output, got:\n{output}"
+    assert "test_add_numbers_example_0" in output, (
+        f"Expected test_add_numbers_example_0 in output, got:\n{output}"
+    )
 
-    assert (
-        "test_echo_text_example_0" in output
-    ), f"Expected test_echo_text_example_0 in output, got:\n{output}"
+    assert "test_echo_text_example_0" in output, (
+        f"Expected test_echo_text_example_0 in output, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_example_tests_generated_and_pass: all 4 example tests generated and passed", flush=True)
+    print(
+        "✅ test_example_tests_generated_and_pass: all 4 example tests generated and passed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1151,11 +1309,19 @@ def test_example_test_fails_when_output_type_mismatches_schema():
     as type "string" in outputSchema. The generated example test must detect this
     and fail.
     """
-    print("\n🔍 Testing example test failure on outputSchema type mismatch...", flush=True)
+    print(
+        "\n🔍 Testing example test failure on outputSchema type mismatch...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://output-schema-type-error-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://output-schema-type-error-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1167,19 +1333,22 @@ def test_example_test_fails_when_output_type_mismatches_schema():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_get_value_example_0" in output
-    ), f"Expected test_get_value_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_get_value_example_0" in output, (
+        f"Expected test_get_value_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "FAILED" in output and "test_get_value_example_0" in output
-    ), f"Expected test_get_value_example_0 to fail, got:\n{output}"
+    assert "FAILED" in output and "test_get_value_example_0" in output, (
+        f"Expected test_get_value_example_0 to fail, got:\n{output}"
+    )
 
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail on output type mismatch, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail on output type mismatch, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_example_test_fails_when_output_type_mismatches_schema correctly failed", flush=True)
+    print(
+        "✅ test_example_test_fails_when_output_type_mismatches_schema correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1189,11 +1358,19 @@ def test_without_flags_all_example_tests_generated():
     The read_only_examples_server has fetch_info (readOnlyHint=True) and
     mutate_data (readOnlyHint=False). Without flags, both should get example tests.
     """
-    print("\n🔍 Testing that all tools generate example tests when no filter flags are set...", flush=True)
+    print(
+        "\n🔍 Testing that all tools generate example tests when no filter flags are set...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://read-only-examples-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://read-only-examples-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1205,19 +1382,22 @@ def test_without_flags_all_example_tests_generated():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_fetch_info_example_0" in output
-    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_fetch_info_example_0" in output, (
+        f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_mutate_data_example_0" in output
-    ), f"Expected test_mutate_data_example_0 in output, got:\n{output}"
+    assert "test_mutate_data_example_0" in output, (
+        f"Expected test_mutate_data_example_0 in output, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all example tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_without_flags_all_example_tests_generated: both tools generated example tests", flush=True)
+    print(
+        "✅ test_without_flags_all_example_tests_generated: both tools generated example tests",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1228,7 +1408,10 @@ def test_production_flag_filters_to_read_only_tools():
     mutate_data (readOnlyHint=False). With --mcp-tools-production, only
     fetch_info should get an example test; mutate_data must not.
     """
-    print("\n🔍 Testing --mcp-tools-production limits examples to readOnly tools...", flush=True)
+    print(
+        "\n🔍 Testing --mcp-tools-production limits examples to readOnly tools...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1250,19 +1433,22 @@ def test_production_flag_filters_to_read_only_tools():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_fetch_info_example_0" in output
-    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_fetch_info_example_0" in output, (
+        f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_mutate_data_example_0" not in output
-    ), f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-production, got:\n{output}"
+    assert "test_mutate_data_example_0" not in output, (
+        f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-production, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected example tests to pass with --mcp-tools-production, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected example tests to pass with --mcp-tools-production, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_production_flag_filters_to_read_only_tools: mutate_data correctly excluded", flush=True)
+    print(
+        "✅ test_production_flag_filters_to_read_only_tools: mutate_data correctly excluded",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1272,7 +1458,10 @@ def test_read_only_flag_filters_to_read_only_tools():
     Identical behaviour to --mcp-tools-production: only fetch_info should get
     an example test; mutate_data must not.
     """
-    print("\n🔍 Testing --mcp-tools-read-only limits examples to readOnly tools...", flush=True)
+    print(
+        "\n🔍 Testing --mcp-tools-read-only limits examples to readOnly tools...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1294,19 +1483,22 @@ def test_read_only_flag_filters_to_read_only_tools():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_fetch_info_example_0" in output
-    ), f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_fetch_info_example_0" in output, (
+        f"Expected test_fetch_info_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_mutate_data_example_0" not in output
-    ), f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-read-only, got:\n{output}"
+    assert "test_mutate_data_example_0" not in output, (
+        f"Expected test_mutate_data_example_0 to be absent with --mcp-tools-read-only, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected example tests to pass with --mcp-tools-read-only, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected example tests to pass with --mcp-tools-read-only, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_read_only_flag_filters_to_read_only_tools: mutate_data correctly excluded", flush=True)
+    print(
+        "✅ test_read_only_flag_filters_to_read_only_tools: mutate_data correctly excluded",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1318,7 +1510,10 @@ def test_strict_mode_passes_when_all_tools_compliant():
     must generate the has_examples and has_output_schema tests and they must all
     pass.
     """
-    print("\n🔍 Testing --mcp-tools-strict passes when all tools are compliant...", flush=True)
+    print(
+        "\n🔍 Testing --mcp-tools-strict passes when all tools are compliant...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1340,25 +1535,25 @@ def test_strict_mode_passes_when_all_tools_compliant():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_fetch_info_has_examples" in output
-    ), f"Expected test_fetch_info_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_fetch_info_has_examples" in output, (
+        f"Expected test_fetch_info_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_fetch_info_has_output_schema" in output
-    ), f"Expected test_fetch_info_has_output_schema in output, got:\n{output}"
+    assert "test_fetch_info_has_output_schema" in output, (
+        f"Expected test_fetch_info_has_output_schema in output, got:\n{output}"
+    )
 
-    assert (
-        "test_mutate_data_has_examples" in output
-    ), f"Expected test_mutate_data_has_examples in output, got:\n{output}"
+    assert "test_mutate_data_has_examples" in output, (
+        f"Expected test_mutate_data_has_examples in output, got:\n{output}"
+    )
 
-    assert (
-        "test_mutate_data_has_output_schema" in output
-    ), f"Expected test_mutate_data_has_output_schema in output, got:\n{output}"
+    assert "test_mutate_data_has_output_schema" in output, (
+        f"Expected test_mutate_data_has_output_schema in output, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected strict mode to pass for compliant server, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected strict mode to pass for compliant server, got exit code: {result.returncode}\n{output}"
+    )
 
     print("✅ test_strict_mode_passes_when_all_tools_compliant", flush=True)
 
@@ -1371,7 +1566,10 @@ def test_strict_mode_fails_when_tool_missing_examples():
     --mcp-tools-strict the plugin must generate test_stream_message_has_examples
     and it must fail.
     """
-    print("\n🔍 Testing --mcp-tools-strict fails when a tool is missing examples...", flush=True)
+    print(
+        "\n🔍 Testing --mcp-tools-strict fails when a tool is missing examples...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1393,19 +1591,22 @@ def test_strict_mode_fails_when_tool_missing_examples():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_stream_message_has_examples" in output
-    ), f"Expected test_stream_message_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_stream_message_has_examples" in output, (
+        f"Expected test_stream_message_has_examples in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     assert (
         "FAILED" in output and "test_stream_message_has_examples" in output
     ), f"Expected test_stream_message_has_examples to fail, got:\n{output}"
 
-    assert (
-        result.returncode != 0
-    ), f"Expected strict mode to fail when tool has no examples, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected strict mode to fail when tool has no examples, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_strict_mode_fails_when_tool_missing_examples correctly failed", flush=True)
+    print(
+        "✅ test_strict_mode_fails_when_tool_missing_examples correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1416,7 +1617,10 @@ def test_strict_mode_fails_when_tool_missing_output_schema():
     outputSchema. With --mcp-tools-strict the plugin must generate
     test_echo_text_has_output_schema and it must fail.
     """
-    print("\n🔍 Testing --mcp-tools-strict fails when a tool is missing outputSchema...", flush=True)
+    print(
+        "\n🔍 Testing --mcp-tools-strict fails when a tool is missing outputSchema...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1438,19 +1642,22 @@ def test_strict_mode_fails_when_tool_missing_output_schema():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_echo_text_has_output_schema" in output
-    ), f"Expected test_echo_text_has_output_schema in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_echo_text_has_output_schema" in output, (
+        f"Expected test_echo_text_has_output_schema in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     assert (
         "FAILED" in output and "test_echo_text_has_output_schema" in output
     ), f"Expected test_echo_text_has_output_schema to fail, got:\n{output}"
 
-    assert (
-        result.returncode != 0
-    ), f"Expected strict mode to fail when tool has no outputSchema, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected strict mode to fail when tool has no outputSchema, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_strict_mode_fails_when_tool_missing_output_schema correctly failed", flush=True)
+    print(
+        "✅ test_strict_mode_fails_when_tool_missing_output_schema correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1462,11 +1669,19 @@ def test_example_fails_validation_when_required_field_missing():
     only provides "text". The generated test must fail before the tool call
     with a message about the missing required field.
     """
-    print("\n🔍 Testing example validation fails when required field is missing...", flush=True)
+    print(
+        "\n🔍 Testing example validation fails when required field is missing...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://example-missing-required-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://example-missing-required-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1478,23 +1693,26 @@ def test_example_fails_validation_when_required_field_missing():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_send_message_example_0" in output
-    ), f"Expected test_send_message_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_send_message_example_0" in output, (
+        f"Expected test_send_message_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "FAILED" in output and "test_send_message_example_0" in output
-    ), f"Expected test_send_message_example_0 to fail, got:\n{output}"
+    assert "FAILED" in output and "test_send_message_example_0" in output, (
+        f"Expected test_send_message_example_0 to fail, got:\n{output}"
+    )
 
-    assert (
-        "required" in output.lower() or "missing" in output.lower()
-    ), f"Expected failure message about missing required field, got:\n{output}"
+    assert "required" in output.lower() or "missing" in output.lower(), (
+        f"Expected failure message about missing required field, got:\n{output}"
+    )
 
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when example is missing a required field, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when example is missing a required field, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_example_fails_validation_when_required_field_missing correctly failed", flush=True)
+    print(
+        "✅ test_example_fails_validation_when_required_field_missing correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1506,11 +1724,19 @@ def test_example_fails_validation_when_field_has_wrong_type():
     string "five". The generated test must fail before the tool call with a
     message about the type mismatch.
     """
-    print("\n🔍 Testing example validation fails when field has wrong type...", flush=True)
+    print(
+        "\n🔍 Testing example validation fails when field has wrong type...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://example-wrong-type-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://example-wrong-type-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1522,23 +1748,26 @@ def test_example_fails_validation_when_field_has_wrong_type():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_set_count_example_0" in output
-    ), f"Expected test_set_count_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_set_count_example_0" in output, (
+        f"Expected test_set_count_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "FAILED" in output and "test_set_count_example_0" in output
-    ), f"Expected test_set_count_example_0 to fail, got:\n{output}"
+    assert "FAILED" in output and "test_set_count_example_0" in output, (
+        f"Expected test_set_count_example_0 to fail, got:\n{output}"
+    )
 
-    assert (
-        "type" in output.lower()
-    ), f"Expected failure message about wrong type, got:\n{output}"
+    assert "type" in output.lower(), (
+        f"Expected failure message about wrong type, got:\n{output}"
+    )
 
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when example field has wrong type, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when example field has wrong type, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_example_fails_validation_when_field_has_wrong_type correctly failed", flush=True)
+    print(
+        "✅ test_example_fails_validation_when_field_has_wrong_type correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1550,11 +1779,19 @@ def test_example_fails_validation_when_field_has_wrong_format():
     example provides "not-an-email" (no @ symbol). The generated test must fail
     before the tool call with a message about the format violation.
     """
-    print("\n🔍 Testing example validation fails when field has wrong format...", flush=True)
+    print(
+        "\n🔍 Testing example validation fails when field has wrong format...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://example-wrong-format-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://example-wrong-format-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1566,23 +1803,26 @@ def test_example_fails_validation_when_field_has_wrong_format():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_notify_user_example_0" in output
-    ), f"Expected test_notify_user_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_notify_user_example_0" in output, (
+        f"Expected test_notify_user_example_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "FAILED" in output and "test_notify_user_example_0" in output
-    ), f"Expected test_notify_user_example_0 to fail, got:\n{output}"
+    assert "FAILED" in output and "test_notify_user_example_0" in output, (
+        f"Expected test_notify_user_example_0 to fail, got:\n{output}"
+    )
 
-    assert (
-        "format" in output.lower()
-    ), f"Expected failure message about wrong format, got:\n{output}"
+    assert "format" in output.lower(), (
+        f"Expected failure message about wrong format, got:\n{output}"
+    )
 
-    assert (
-        result.returncode != 0
-    ), f"Expected pytest to fail when example field has wrong format, got exit code: {result.returncode}"
+    assert result.returncode != 0, (
+        f"Expected pytest to fail when example field has wrong format, got exit code: {result.returncode}"
+    )
 
-    print("✅ test_example_fails_validation_when_field_has_wrong_format correctly failed", flush=True)
+    print(
+        "✅ test_example_fails_validation_when_field_has_wrong_format correctly failed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1614,18 +1854,19 @@ def test_schema_driven_string_tests_generated_and_pass():
 
     # 8 schema-driven cases for the plain-string text field
     for idx in range(8):
-        assert (
-            f"test_echo_string_schema_{idx}" in output
-        ), (
+        assert f"test_echo_string_schema_{idx}" in output, (
             f"Expected test_echo_string_schema_{idx} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all schema-driven string tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all schema-driven string tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_schema_driven_string_tests_generated_and_pass: all 8 string tests passed", flush=True)
+    print(
+        "✅ test_schema_driven_string_tests_generated_and_pass: all 8 string tests passed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1657,18 +1898,19 @@ def test_schema_driven_number_tests_generated_and_pass():
 
     # 6 schema-driven cases for the unconstrained number field
     for idx in range(6):
-        assert (
-            f"test_compute_schema_{idx}" in output
-        ), (
+        assert f"test_compute_schema_{idx}" in output, (
             f"Expected test_compute_schema_{idx} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all schema-driven number tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all schema-driven number tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_schema_driven_number_tests_generated_and_pass: all 6 number tests passed", flush=True)
+    print(
+        "✅ test_schema_driven_number_tests_generated_and_pass: all 6 number tests passed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1682,7 +1924,10 @@ def test_schema_driven_integer_with_constraints_tests_generated_and_pass():
 
     All three generated tests must appear and pass.
     """
-    print("\n🔍 Testing schema-driven constrained integer test generation...", flush=True)
+    print(
+        "\n🔍 Testing schema-driven constrained integer test generation...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1700,16 +1945,12 @@ def test_schema_driven_integer_with_constraints_tests_generated_and_pass():
 
     # 3 schema-driven cases: minimum (0), maximum (100), midpoint (50)
     for idx in range(3):
-        assert (
-            f"test_bounded_count_schema_{idx}" in output
-        ), (
+        assert f"test_bounded_count_schema_{idx}" in output, (
             f"Expected test_bounded_count_schema_{idx} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected all schema-driven integer tests to pass, "
         f"got exit code: {result.returncode}\n{output}"
     )
@@ -1747,19 +1988,22 @@ def test_schema_driven_boolean_tests_generated_and_pass():
     print(f"STDERR:\n{stderr}\n")
 
     # 2 schema-driven cases: true and false
-    assert (
-        "test_toggle_schema_0" in output
-    ), f"Expected test_toggle_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_toggle_schema_0" in output, (
+        f"Expected test_toggle_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
-    assert (
-        "test_toggle_schema_1" in output
-    ), f"Expected test_toggle_schema_1 in output, got:\n{output}"
+    assert "test_toggle_schema_1" in output, (
+        f"Expected test_toggle_schema_1 in output, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all schema-driven boolean tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all schema-driven boolean tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_schema_driven_boolean_tests_generated_and_pass: both boolean tests passed", flush=True)
+    print(
+        "✅ test_schema_driven_boolean_tests_generated_and_pass: both boolean tests passed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1789,18 +2033,19 @@ def test_schema_driven_enum_tests_generated_and_pass():
 
     # 3 schema-driven cases: one per enum value
     for idx in range(3):
-        assert (
-            f"test_pick_schema_{idx}" in output
-        ), (
+        assert f"test_pick_schema_{idx}" in output, (
             f"Expected test_pick_schema_{idx} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), f"Expected all schema-driven enum tests to pass, got exit code: {result.returncode}\n{output}"
+    assert result.returncode == 0, (
+        f"Expected all schema-driven enum tests to pass, got exit code: {result.returncode}\n{output}"
+    )
 
-    print("✅ test_schema_driven_enum_tests_generated_and_pass: all 3 enum tests passed", flush=True)
+    print(
+        "✅ test_schema_driven_enum_tests_generated_and_pass: all 3 enum tests passed",
+        flush=True,
+    )
 
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
@@ -1816,7 +2061,9 @@ def test_schema_driven_format_tests_generated_and_pass():
     value) plus per-field variant tests that hold the other fields fixed.
     The basic test and at least one variant per field must appear, all passing.
     """
-    print("\n🔍 Testing schema-driven format field test generation...", flush=True)
+    print(
+        "\n🔍 Testing schema-driven format field test generation...", flush=True
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1833,28 +2080,30 @@ def test_schema_driven_format_tests_generated_and_pass():
     print(f"STDERR:\n{stderr}\n")
 
     # basic test (index 0) must always appear
-    assert (
-        "test_check_contact_schema_0" in output
-    ), f"Expected test_check_contact_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    assert "test_check_contact_schema_0" in output, (
+        f"Expected test_check_contact_schema_0 in output, got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
 
     # at least one variant beyond the basic case must be generated
-    assert (
-        "test_check_contact_schema_1" in output
-    ), f"Expected test_check_contact_schema_1 in output, got:\n{output}"
+    assert "test_check_contact_schema_1" in output, (
+        f"Expected test_check_contact_schema_1 in output, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected all schema-driven format tests to pass, "
         f"got exit code: {result.returncode}\n{output}"
     )
 
-    print("✅ test_schema_driven_format_tests_generated_and_pass: format tests passed", flush=True)
+    print(
+        "✅ test_schema_driven_format_tests_generated_and_pass: format tests passed",
+        flush=True,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Missing required field tests (-32602)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_missing_required_field_tests_generated_and_pass():
@@ -1873,7 +2122,12 @@ def test_missing_required_field_tests_generated_and_pass():
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://strict-validation-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1886,16 +2140,12 @@ def test_missing_required_field_tests_generated_and_pass():
     print(f"STDERR:\n{stderr}\n")
 
     for field in ("username", "age", "email", "role"):
-        assert (
-            f"test_manage_user_missing_{field}" in output
-        ), (
+        assert f"test_manage_user_missing_{field}" in output, (
             f"Expected test_manage_user_missing_{field} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected all missing-field tests to pass on strict server, "
         f"got exit code: {result.returncode}\n{output}"
     )
@@ -1916,7 +2166,10 @@ def test_missing_required_field_tests_fail_on_nonvalidating_server():
     from the server; since the server returns success instead, those tests must
     fail and pytest must exit with a non-zero code.
     """
-    print("\n🔍 Testing missing-field tests fail on non-validating server...", flush=True)
+    print(
+        "\n🔍 Testing missing-field tests fail on non-validating server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -1933,25 +2186,18 @@ def test_missing_required_field_tests_fail_on_nonvalidating_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Tests must be generated
-    assert (
-        "test_manage_user_missing_username" in output
-    ), (
+    assert "test_manage_user_missing_username" in output, (
         f"Expected test_manage_user_missing_username in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
 
     # At least one missing-field test must fail
-    assert (
-        "FAILED" in output
-        and any(
-            f"test_manage_user_missing_{f}" in output
-            for f in ("username", "age", "email", "role")
-        )
+    assert "FAILED" in output and any(
+        f"test_manage_user_missing_{f}" in output
+        for f in ("username", "age", "email", "role")
     ), f"Expected at least one missing-field test to fail, got:\n{output}"
 
-    assert (
-        result.returncode != 0
-    ), (
+    assert result.returncode != 0, (
         f"Expected pytest to fail when server does not validate required fields, "
         f"got exit code: {result.returncode}"
     )
@@ -1966,6 +2212,7 @@ def test_missing_required_field_tests_fail_on_nonvalidating_server():
 # ---------------------------------------------------------------------------
 # Wrong type tests (-32602)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_wrong_type_tests_generated_and_pass():
@@ -1985,7 +2232,12 @@ def test_wrong_type_tests_generated_and_pass():
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://strict-validation-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -1998,16 +2250,12 @@ def test_wrong_type_tests_generated_and_pass():
     print(f"STDERR:\n{stderr}\n")
 
     for field in ("username", "age", "email", "role"):
-        assert (
-            f"test_manage_user_wrong_type_{field}" in output
-        ), (
+        assert f"test_manage_user_wrong_type_{field}" in output, (
             f"Expected test_manage_user_wrong_type_{field} in output, "
             f"got:\n{output}\n\nSTDERR:\n{stderr}"
         )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected all wrong-type tests to pass on strict server, "
         f"got exit code: {result.returncode}\n{output}"
     )
@@ -2027,7 +2275,10 @@ def test_wrong_type_tests_fail_on_nonvalidating_server():
     plugin's wrong-type tests expect -32602; since the server returns success,
     those tests must fail and pytest must exit with a non-zero code.
     """
-    print("\n🔍 Testing wrong-type tests fail on non-validating server...", flush=True)
+    print(
+        "\n🔍 Testing wrong-type tests fail on non-validating server...",
+        flush=True,
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
@@ -2044,25 +2295,18 @@ def test_wrong_type_tests_fail_on_nonvalidating_server():
     print(f"STDERR:\n{stderr}\n")
 
     # Tests must be generated
-    assert (
-        "test_manage_user_wrong_type_username" in output
-    ), (
+    assert "test_manage_user_wrong_type_username" in output, (
         f"Expected test_manage_user_wrong_type_username in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
 
     # At least one wrong-type test must fail
-    assert (
-        "FAILED" in output
-        and any(
-            f"test_manage_user_wrong_type_{f}" in output
-            for f in ("username", "age", "email", "role")
-        )
+    assert "FAILED" in output and any(
+        f"test_manage_user_wrong_type_{f}" in output
+        for f in ("username", "age", "email", "role")
     ), f"Expected at least one wrong-type test to fail, got:\n{output}"
 
-    assert (
-        result.returncode != 0
-    ), (
+    assert result.returncode != 0, (
         f"Expected pytest to fail when server does not validate field types, "
         f"got exit code: {result.returncode}"
     )
@@ -2078,19 +2322,27 @@ def test_wrong_type_tests_fail_on_nonvalidating_server():
 # Invalid request test (-32600)
 # ---------------------------------------------------------------------------
 
+
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_invalid_request_test_generated_and_pass():
-    """Test that a -32600 invalid-request test is generated and passes on a strict server.
+    """Test that a -32600 or -32602 invalid-request test is generated and passes on a strict server.
 
     The plugin must generate test_invalid_request which sends a tools/call
     request with params set to null (an invalid structure).  The strict server
-    returns -32600; the test passes when that error code is received.
+    returns -32600 or -32602; the test passes when either error code is received.
     """
-    print("\n🔍 Testing invalid-request (-32600) test generation...", flush=True)
+    print(
+        "\n🔍 Testing invalid-request (-32600) test generation...", flush=True
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://strict-validation-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -2102,30 +2354,81 @@ def test_invalid_request_test_generated_and_pass():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_invalid_request" in output
-    ), (
+    assert "test_invalid_request" in output, (
         f"Expected test_invalid_request in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
 
-    assert (
-        "PASSED" in output and "test_invalid_request" in output
-    ), f"Expected test_invalid_request to pass, got:\n{output}"
+    assert "PASSED" in output and "test_invalid_request" in output, (
+        f"Expected test_invalid_request to pass, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected test_invalid_request to pass on strict server, "
         f"got exit code: {result.returncode}\n{output}"
     )
 
-    print("✅ test_invalid_request_test_generated_and_pass: test passed", flush=True)
+    print(
+        "✅ test_invalid_request_test_generated_and_pass: test passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_request_test_passes_on_incorrect_error_server():
+    """Test that test_invalid_request passes on a server that returns -32602 for null params.
+
+    The incorrect_error_server returns -32602 (Invalid Params) instead of -32600
+    (Invalid Request) for params: null. The test must accept both error codes.
+    """
+    print(
+        "\n🔍 Testing invalid-request test passes on server returning -32602...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://incorrect-error-server:8000",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert "test_invalid_request" in output, (
+        f"Expected test_invalid_request in output, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+
+    assert "PASSED" in output and "test_invalid_request" in output, (
+        f"Expected test_invalid_request to pass, got:\n{output}"
+    )
+
+    assert result.returncode == 0, (
+        f"Expected test_invalid_request to pass on incorrect-error server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_invalid_request_test_passes_on_incorrect_error_server: test passed",
+        flush=True,
+    )
 
 
 # ---------------------------------------------------------------------------
 # Method not found test (-32601)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
 def test_method_not_found_test_generated_and_pass():
@@ -2135,11 +2438,18 @@ def test_method_not_found_test_generated_and_pass():
     JSON-RPC method (e.g. 'tools/execute').  The strict server returns -32601;
     the test passes when that error code is received.
     """
-    print("\n🔍 Testing method-not-found (-32601) test generation...", flush=True)
+    print(
+        "\n🔍 Testing method-not-found (-32601) test generation...", flush=True
+    )
     time.sleep(0.5)
 
     result = subprocess.run(
-        ["pytest", "--mcp-tools=http://strict-validation-server:8000", "-v", "-s"],
+        [
+            "pytest",
+            "--mcp-tools=http://strict-validation-server:8000",
+            "-v",
+            "-s",
+        ],
         capture_output=True,
         text=True,
         cwd="/app",
@@ -2151,22 +2461,21 @@ def test_method_not_found_test_generated_and_pass():
     print(f"STDOUT:\n{output}\n")
     print(f"STDERR:\n{stderr}\n")
 
-    assert (
-        "test_method_not_found" in output
-    ), (
+    assert "test_method_not_found" in output, (
         f"Expected test_method_not_found in output, "
         f"got:\n{output}\n\nSTDERR:\n{stderr}"
     )
 
-    assert (
-        "PASSED" in output and "test_method_not_found" in output
-    ), f"Expected test_method_not_found to pass, got:\n{output}"
+    assert "PASSED" in output and "test_method_not_found" in output, (
+        f"Expected test_method_not_found to pass, got:\n{output}"
+    )
 
-    assert (
-        result.returncode == 0
-    ), (
+    assert result.returncode == 0, (
         f"Expected test_method_not_found to pass on strict server, "
         f"got exit code: {result.returncode}\n{output}"
     )
 
-    print("✅ test_method_not_found_test_generated_and_pass: test passed", flush=True)
+    print(
+        "✅ test_method_not_found_test_generated_and_pass: test passed",
+        flush=True,
+    )

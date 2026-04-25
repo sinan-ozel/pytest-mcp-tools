@@ -79,7 +79,10 @@ def _establish_session(base_url, endpoint="/mcp"):
                 "params": {
                     "protocolVersion": "2025-03-26",
                     "capabilities": {},
-                    "clientInfo": {"name": "pytest-mcp-tools", "version": "0.1.3"},
+                    "clientInfo": {
+                        "name": "pytest-mcp-tools",
+                        "version": "0.1.3",
+                    },
                 },
             },
             headers=_MCP_HEADERS,
@@ -223,7 +226,9 @@ def collect_output_schema_type_mismatches(content, properties, path=""):
         expected_python = _JSON_SCHEMA_TYPE_TO_PYTHON.get(declared_type)
         if expected_python is not None:
             # bool is a subclass of int in Python; treat booleans as non-numeric
-            if declared_type in ("number", "integer") and isinstance(actual_value, bool):
+            if declared_type in ("number", "integer") and isinstance(
+                actual_value, bool
+            ):
                 mismatches.append(
                     (field_path, declared_type, type(actual_value).__name__)
                 )
@@ -234,7 +239,9 @@ def collect_output_schema_type_mismatches(content, properties, path=""):
         nested = field_schema.get("properties")
         if nested and isinstance(actual_value, dict):
             mismatches.extend(
-                collect_output_schema_type_mismatches(actual_value, nested, field_path)
+                collect_output_schema_type_mismatches(
+                    actual_value, nested, field_path
+                )
             )
     return mismatches
 
@@ -312,8 +319,8 @@ def _field_values(field_schema):
         minimum = field_schema.get("minimum")
         maximum = field_schema.get("maximum")
         if minimum is not None or maximum is not None:
-            lo = minimum if minimum is not None else -(10 ** 15)
-            hi = maximum if maximum is not None else 10 ** 15
+            lo = minimum if minimum is not None else -(10**15)
+            hi = maximum if maximum is not None else 10**15
             if field_type == "integer":
                 lo, hi = int(lo), int(hi)
                 mid = (lo + hi) // 2
@@ -326,7 +333,7 @@ def _field_values(field_schema):
                 values.append(0)
             return values
         if field_type == "integer":
-            return [0, 1, -1, 10 ** 15, -(10 ** 15), 42]
+            return [0, 1, -1, 10**15, -(10**15), 42]
         return [0, 1, -1, 1e15, -1e15, 3.14]
 
     if field_type == "boolean":
@@ -461,8 +468,7 @@ def generate_schema_cases(input_schema):
     # Always include enum fields even when optional — they have a finite set of
     # valid values that are all worth exercising.
     optional_enum_fields = [
-        f for f, s in properties.items()
-        if f not in required and s.get("enum")
+        f for f, s in properties.items() if f not in required and s.get("enum")
     ]
     required_fields = [f for f in required if f in properties]
     fields = (required_fields + optional_enum_fields) or list(properties.keys())
@@ -521,7 +527,9 @@ def collect_example_input_violations(example_input, input_schema):
         if declared_type is not None:
             expected_python = _JSON_SCHEMA_TYPE_TO_PYTHON.get(declared_type)
             if expected_python is not None:
-                if declared_type in ("number", "integer") and isinstance(value, bool):
+                if declared_type in ("number", "integer") and isinstance(
+                    value, bool
+                ):
                     violations.append(
                         f"field '{field_name}' declared as type '{declared_type}'"
                         f" but got bool"
@@ -663,7 +671,9 @@ def collect_input_schema_invalid_types(properties, path=""):
                 invalid.append((field_path, field_type, "invalid"))
         nested = field_schema.get("properties")
         if nested:
-            invalid.extend(collect_input_schema_invalid_types(nested, field_path))
+            invalid.extend(
+                collect_input_schema_invalid_types(nested, field_path)
+            )
     return invalid
 
 
@@ -728,9 +738,7 @@ def list_tools(base_url, endpoint="/mcp"):
             raise ValueError("Tools list is empty")
         return [tool["name"] for tool in tools]
 
-    raise ValueError(
-        f"Missing 'result.tools' in response: {result}"
-    )
+    raise ValueError(f"Missing 'result.tools' in response: {result}")
 
 
 def pytest_addoption(parser):
@@ -818,24 +826,28 @@ def pytest_configure(config):
         endpoints_found = []
         endpoints_404 = []  # Track which endpoints returned 404
         endpoints_sse_deprecated = []  # Track SSE-based endpoints (406)
-        server_ever_reachable = False  # Track if we ever connected to the server
+        server_ever_reachable = (
+            False  # Track if we ever connected to the server
+        )
 
         # First, check if the server is reachable at all
         server_reachable = False
         # Try root endpoint first
         print(f"   Checking {base_url}...")
         try:
-            response = requests.get(
-                base_url, timeout=2, allow_redirects=False
-            )
+            response = requests.get(base_url, timeout=5, allow_redirects=False)
             if response.status_code < 500:
                 server_reachable = True
                 server_ever_reachable = True
                 print(f"   ✓ Server reachable (status: {response.status_code})")
             else:
-                print(f"   ✗ Server not reachable at {base_url} (status: {response.status_code})")
+                print(
+                    f"   ✗ Server not reachable at {base_url} (status: {response.status_code})"
+                )
         except requests.exceptions.RequestException as e:
-            print(f"   ✗ Server not reachable at {base_url} ({type(e).__name__})")
+            print(
+                f"   ✗ Server not reachable at {base_url} ({type(e).__name__})"
+            )
 
         # If server is reachable, try specific endpoints
         if server_reachable:
@@ -847,13 +859,13 @@ def pytest_configure(config):
                             f"{base_url}{endpoint}",
                             json={},
                             headers=_MCP_HEADERS,
-                            timeout=2,
+                            timeout=5,
                             allow_redirects=False,
                         )
                     else:
                         response = requests.get(
                             f"{base_url}{endpoint}",
-                            timeout=2,
+                            timeout=5,
                             allow_redirects=False,
                         )
 
@@ -885,7 +897,10 @@ def pytest_configure(config):
                     # - 400-499 except 404: Client error (endpoint exists but
                     #   request is malformed)
                     # - 405: Method not allowed (endpoint exists, wrong method)
-                    if response.status_code < 500 and response.status_code != 404:
+                    if (
+                        response.status_code < 500
+                        and response.status_code != 404
+                    ):
                         if endpoint not in endpoints_found:
                             endpoints_found.append(endpoint)
                             print(
@@ -921,10 +936,7 @@ def pytest_configure(config):
         if "/mcp" in endpoints_found:
             try:
                 anno_result = _post_tools_list(base_url, "/mcp")
-                if (
-                    "result" in anno_result
-                    and "tools" in anno_result["result"]
-                ):
+                if "result" in anno_result and "tools" in anno_result["result"]:
                     tools_list = anno_result["result"]["tools"]
                     config._mcp_tools_tools_list = tools_list
                     if any("annotations" in t for t in tools_list):
@@ -945,7 +957,9 @@ def pytest_configure(config):
                 pass
 
         if endpoints_found:
-            print(f"✅ MCP Tools: Discovered endpoints: {', '.join(endpoints_found)}\n")
+            print(
+                f"✅ MCP Tools: Discovered endpoints: {', '.join(endpoints_found)}\n"
+            )
         else:
             if not server_ever_reachable:
                 print("❌ MCP Tools: Server not reachable.\n")
@@ -987,7 +1001,9 @@ def pytest_collection_modifyitems(session, config, items):
         # No HTTP endpoints found - create a failing test
         test_id = "test_mcp_tools[NO ENDPOINT FOUND]"
         sse_deprecated = getattr(config, "_mcp_tools_sse_deprecated", [])
-        server_unreachable = getattr(config, "_mcp_tools_server_unreachable", False)
+        server_unreachable = getattr(
+            config, "_mcp_tools_server_unreachable", False
+        )
 
         def make_failing_test(url, sse_endpoints, unreachable):
             def test_func():
@@ -1008,9 +1024,12 @@ def pytest_collection_modifyitems(session, config, items):
                             " Migrate to /mcp (HTTP streaming)."
                         )
                 pytest.fail(msg)
+
             return test_func
 
-        test_func = make_failing_test(base_url, sse_deprecated, server_unreachable)
+        test_func = make_failing_test(
+            base_url, sse_deprecated, server_unreachable
+        )
         test_func.__name__ = test_id
 
         # Create pytest Function item
@@ -1025,15 +1044,19 @@ def pytest_collection_modifyitems(session, config, items):
         # Add test_list_tools_from_empty_server_raises_error only when server is reachable
         # but has no endpoints (don't add if server is unreachable/stdio-only)
         if not server_unreachable:
+
             def make_list_tools_error_test(url):
                 def test_list_tools_from_empty_server_raises_error():
                     """Test that list_tools raises ValueError when server has no tools."""
                     with pytest.raises(ValueError):
                         list_tools(url, "/mcp")
+
                 return test_list_tools_from_empty_server_raises_error
 
             error_test_func = make_list_tools_error_test(base_url)
-            error_test_func.__name__ = "test_list_tools_from_empty_server_raises_error"
+            error_test_func.__name__ = (
+                "test_list_tools_from_empty_server_raises_error"
+            )
 
             error_item = pytest.Function.from_parent(
                 module,
@@ -1087,6 +1110,7 @@ def pytest_collection_modifyitems(session, config, items):
                             raise
 
                 assert tools, "Expected non-empty tools list"
+
             return test_list_tools_from_basic_server
 
         list_tools_test_func = make_list_tools_test(base_url)
@@ -1113,8 +1137,13 @@ def pytest_collection_modifyitems(session, config, items):
                 # Check each tool has a description
                 for tool in tools:
                     tool_name = tool.get("name", "<unknown>")
-                    assert "description" in tool, f"Tool '{tool_name}' is missing description field"
-                    assert tool["description"], f"Tool '{tool_name}' has empty description"
+                    assert "description" in tool, (
+                        f"Tool '{tool_name}' is missing description field"
+                    )
+                    assert tool["description"], (
+                        f"Tool '{tool_name}' has empty description"
+                    )
+
             return test_tools_have_descriptions
 
         tools_desc_test_func = make_tools_have_descriptions_test(base_url)
@@ -1136,6 +1165,7 @@ def pytest_collection_modifyitems(session, config, items):
                 result = _post_tools_list(url, endpoint)
                 tools = result.get("result", {}).get("tools", [])
                 validate_tools_have_names(tools)
+
             return test_tools_have_names
 
         tools_names_test_func = make_tools_have_names_test(base_url)
@@ -1157,9 +1187,12 @@ def pytest_collection_modifyitems(session, config, items):
                 result = _post_tools_list(url, endpoint)
                 tools = result.get("result", {}).get("tools", [])
                 validate_tools_have_unique_names(tools)
+
             return test_tools_have_unique_names
 
-        tools_unique_names_test_func = make_tools_have_unique_names_test(base_url)
+        tools_unique_names_test_func = make_tools_have_unique_names_test(
+            base_url
+        )
         tools_unique_names_test_func.__name__ = "test_tools_have_unique_names"
 
         tools_unique_names_item = pytest.Function.from_parent(
@@ -1173,12 +1206,14 @@ def pytest_collection_modifyitems(session, config, items):
         # Add annotation tests only when at least one tool has annotations
         has_annotations = getattr(config, "_mcp_tools_has_annotations", False)
         if has_annotations:
+
             def make_tools_have_titles_test(url, endpoint="/mcp"):
                 def test_tools_have_titles():
                     """Test that all tools with annotations have a title field."""
                     result = _post_tools_list(url, endpoint)
                     tools = result.get("result", {}).get("tools", [])
                     validate_tools_have_titles(tools)
+
                 return test_tools_have_titles
 
             tools_titles_test_func = make_tools_have_titles_test(base_url)
@@ -1202,12 +1237,15 @@ def pytest_collection_modifyitems(session, config, items):
                     result = _post_tools_list(url, endpoint)
                     tools = result.get("result", {}).get("tools", [])
                     validate_tool_annotations_are_consistent(tools)
+
                 return test_tool_annotations_are_consistent
 
             annotations_test_func = make_tool_annotations_are_consistent_test(
                 base_url
             )
-            annotations_test_func.__name__ = "test_tool_annotations_are_consistent"
+            annotations_test_func.__name__ = (
+                "test_tool_annotations_are_consistent"
+            )
 
             annotations_item = pytest.Function.from_parent(
                 module,
@@ -1238,21 +1276,27 @@ def pytest_collection_modifyitems(session, config, items):
                     """Test that every inputSchema field has a description."""
                     result = _post_tools_list(url, endpoint)
                     current_tool = next(
-                        (t for t in result.get("result", {}).get("tools", [])
-                         if t.get("name") == tname),
+                        (
+                            t
+                            for t in result.get("result", {}).get("tools", [])
+                            if t.get("name") == tname
+                        ),
                         None,
                     )
                     assert current_tool is not None, (
                         f"Tool '{tname}' not found in tools list"
                     )
-                    schema_props = (
-                        current_tool.get("inputSchema", {}).get("properties", {})
+                    schema_props = current_tool.get("inputSchema", {}).get(
+                        "properties", {}
                     )
-                    missing = collect_input_schema_missing_descriptions(schema_props)
+                    missing = collect_input_schema_missing_descriptions(
+                        schema_props
+                    )
                     assert not missing, (
                         f"Tool '{tname}' has inputSchema fields missing description: "
                         + ", ".join(missing)
                     )
+
                 return test_func
 
             desc_test_name = f"test_{safe_name}_input_schema_field_descriptions"
@@ -1272,15 +1316,18 @@ def pytest_collection_modifyitems(session, config, items):
                     """Test that every inputSchema field has a valid type."""
                     result = _post_tools_list(url, endpoint)
                     current_tool = next(
-                        (t for t in result.get("result", {}).get("tools", [])
-                         if t.get("name") == tname),
+                        (
+                            t
+                            for t in result.get("result", {}).get("tools", [])
+                            if t.get("name") == tname
+                        ),
                         None,
                     )
                     assert current_tool is not None, (
                         f"Tool '{tname}' not found in tools list"
                     )
-                    schema_props = (
-                        current_tool.get("inputSchema", {}).get("properties", {})
+                    schema_props = current_tool.get("inputSchema", {}).get(
+                        "properties", {}
                     )
                     invalid = collect_input_schema_invalid_types(schema_props)
                     if invalid:
@@ -1292,6 +1339,7 @@ def pytest_collection_modifyitems(session, config, items):
                             f"Tool '{tname}' has inputSchema fields with missing or "
                             f"invalid type: {details}"
                         )
+
                 return test_func
 
             type_test_name = f"test_{safe_name}_input_schema_field_types"
@@ -1333,10 +1381,14 @@ def pytest_collection_modifyitems(session, config, items):
                 example_input = example
                 test_name = f"test_{safe_name}_example_{idx}"
 
-                def make_example_test(url, tname, args, out_props, schema, endpoint="/mcp"):
+                def make_example_test(
+                    url, tname, args, out_props, schema, endpoint="/mcp"
+                ):
                     def test_func():
                         """Call tool with example input; validate output against outputSchema."""
-                        violations = collect_example_input_violations(args, schema)
+                        violations = collect_example_input_violations(
+                            args, schema
+                        )
                         if violations:
                             assert False, (
                                 f"Tool '{tname}' example has invalid input: "
@@ -1355,8 +1407,10 @@ def pytest_collection_modifyitems(session, config, items):
                         if out_props:
                             structured = tool_result.get("structuredContent")
                             if structured is not None:
-                                mismatches = collect_output_schema_type_mismatches(
-                                    structured, out_props
+                                mismatches = (
+                                    collect_output_schema_type_mismatches(
+                                        structured, out_props
+                                    )
                                 )
                                 if mismatches:
                                     details = "; ".join(
@@ -1368,10 +1422,14 @@ def pytest_collection_modifyitems(session, config, items):
                                         f"Tool '{tname}' structuredContent type "
                                         f"mismatches outputSchema: {details}"
                                     )
+
                     return test_func
 
                 example_func = make_example_test(
-                    base_url, tool_name, example_input, output_properties,
+                    base_url,
+                    tool_name,
+                    example_input,
+                    output_properties,
                     tool.get("inputSchema", {}),
                 )
                 example_func.__name__ = test_name
@@ -1403,7 +1461,9 @@ def pytest_collection_modifyitems(session, config, items):
             for idx, case_input in enumerate(schema_cases):
                 test_name = f"test_{safe_name}_schema_{idx}"
 
-                def make_schema_test(url, tname, args, out_props, endpoint="/mcp"):
+                def make_schema_test(
+                    url, tname, args, out_props, endpoint="/mcp"
+                ):
                     def test_func():
                         """Call tool with schema-generated input; validate output."""
                         result = _post_tools_call(url, tname, args, endpoint)
@@ -1419,8 +1479,10 @@ def pytest_collection_modifyitems(session, config, items):
                         if out_props:
                             structured = tool_result.get("structuredContent")
                             if structured is not None:
-                                mismatches = collect_output_schema_type_mismatches(
-                                    structured, out_props
+                                mismatches = (
+                                    collect_output_schema_type_mismatches(
+                                        structured, out_props
+                                    )
                                 )
                                 if mismatches:
                                     details = "; ".join(
@@ -1432,10 +1494,14 @@ def pytest_collection_modifyitems(session, config, items):
                                         f"Tool '{tname}' structuredContent type "
                                         f"mismatches outputSchema: {details}"
                                     )
+
                     return test_func
 
                 schema_func = make_schema_test(
-                    base_url, tool_name, case_input, output_properties,
+                    base_url,
+                    tool_name,
+                    case_input,
+                    output_properties,
                 )
                 schema_func.__name__ = test_name
                 schema_item = pytest.Function.from_parent(
@@ -1464,12 +1530,14 @@ def pytest_collection_modifyitems(session, config, items):
                             f"Tool '{tname}' has no examples. "
                             "Add at least one entry to the 'examples' list."
                         )
+
                     return test_func
 
                 def make_has_examples_pass(tname):
                     def test_func():
                         """Pass: the tool declares at least one example."""
                         pass
+
                     return test_func
 
                 has_examples = bool(tool.get("inputSchema", {}).get("examples"))
@@ -1496,12 +1564,14 @@ def pytest_collection_modifyitems(session, config, items):
                             f"Tool '{tname}' has no outputSchema. "
                             "Add an 'outputSchema' object to the tool definition."
                         )
+
                     return test_func
 
                 def make_has_output_schema_pass(tname):
                     def test_func():
                         """Pass: the tool declares an outputSchema."""
                         pass
+
                     return test_func
 
                 has_output_schema = bool(tool.get("outputSchema"))
@@ -1562,27 +1632,38 @@ def pytest_collection_modifyitems(session, config, items):
                 if field not in base_args:
                     continue
 
-                def make_missing_field_test(url, tname, fname, bargs, endpoint="/mcp"):
+                def make_missing_field_test(
+                    url, tname, fname, bargs, endpoint="/mcp"
+                ):
                     def test_func():
                         """Omit one required field; expect -32602 Invalid Params."""
                         args = {k: v for k, v in bargs.items() if k != fname}
-                        resp = _post_raw_request(url, {
-                            "jsonrpc": "2.0",
-                            "id": 1,
-                            "method": "tools/call",
-                            "params": {"name": tname, "arguments": args},
-                        }, endpoint)
+                        resp = _post_raw_request(
+                            url,
+                            {
+                                "jsonrpc": "2.0",
+                                "id": 1,
+                                "method": "tools/call",
+                                "params": {"name": tname, "arguments": args},
+                            },
+                            endpoint,
+                        )
                         error = resp.get("error", {})
                         assert error.get("code") == -32602, (
                             f"Tool '{tname}' with missing field '{fname}' expected"
                             f" JSON-RPC error -32602 but got: {resp!r}"
                         )
+
                     return test_func
 
                 test_name = f"test_{safe_name}_missing_{field}"
-                test_func = make_missing_field_test(base_url, tool_name, field, base_args)
+                test_func = make_missing_field_test(
+                    base_url, tool_name, field, base_args
+                )
                 test_func.__name__ = test_name
-                item = pytest.Function.from_parent(module, name=test_name, callobj=test_func)
+                item = pytest.Function.from_parent(
+                    module, name=test_name, callobj=test_func
+                )
                 item.add_marker(pytest.mark.mcp_tools_invalid_input)
                 test_items.append(item)
 
@@ -1625,22 +1706,29 @@ def pytest_collection_modifyitems(session, config, items):
                 if invalid_value is None:
                     continue
 
-                def make_wrong_type_test(url, tname, fname, bargs, inv_val, endpoint="/mcp"):
+                def make_wrong_type_test(
+                    url, tname, fname, bargs, inv_val, endpoint="/mcp"
+                ):
                     def test_func():
                         """Send wrong-typed field value; expect -32602 Invalid Params."""
                         args = {**bargs, fname: inv_val}
-                        resp = _post_raw_request(url, {
-                            "jsonrpc": "2.0",
-                            "id": 1,
-                            "method": "tools/call",
-                            "params": {"name": tname, "arguments": args},
-                        }, endpoint)
+                        resp = _post_raw_request(
+                            url,
+                            {
+                                "jsonrpc": "2.0",
+                                "id": 1,
+                                "method": "tools/call",
+                                "params": {"name": tname, "arguments": args},
+                            },
+                            endpoint,
+                        )
                         error = resp.get("error", {})
                         assert error.get("code") == -32602, (
                             f"Tool '{tname}' with wrong-type field '{fname}'"
                             f" (value={inv_val!r}) expected JSON-RPC error -32602"
                             f" but got: {resp!r}"
                         )
+
                     return test_func
 
                 test_name = f"test_{safe_name}_wrong_type_{field}"
@@ -1648,28 +1736,37 @@ def pytest_collection_modifyitems(session, config, items):
                     base_url, tool_name, field, base_args, invalid_value
                 )
                 test_func.__name__ = test_name
-                item = pytest.Function.from_parent(module, name=test_name, callobj=test_func)
+                item = pytest.Function.from_parent(
+                    module, name=test_name, callobj=test_func
+                )
                 item.add_marker(pytest.mark.mcp_tools_invalid_input)
                 test_items.append(item)
 
         # --- server-level protocol error tests ---
-        # test_invalid_request: send tools/call with params=null → expect -32600
+        # test_invalid_request: send tools/call with params=null → expect -32600 or -32602
         # test_method_not_found: send unknown method → expect -32601 (only when
         # the server was probed to return -32601 for unknown methods)
         if "/mcp" in endpoints:
+
             def make_invalid_request_test(url, endpoint="/mcp"):
                 def test_invalid_request():
-                    """Send tools/call with params=null; expect -32600 Invalid Request."""
-                    resp = _post_raw_request(url, {
-                        "jsonrpc": "2.0",
-                        "id": 99,
-                        "method": "tools/call",
-                        "params": None,
-                    }, endpoint)
-                    error = resp.get("error", {})
-                    assert error.get("code") == -32600, (
-                        f"Expected JSON-RPC error -32600 for null params but got: {resp!r}"
+                    """Send tools/call with params=null; expect -32600 or -32602."""
+                    resp = _post_raw_request(
+                        url,
+                        {
+                            "jsonrpc": "2.0",
+                            "id": 99,
+                            "method": "tools/call",
+                            "params": None,
+                        },
+                        endpoint,
                     )
+                    error = resp.get("error", {})
+                    error_code = error.get("code")
+                    assert error_code in (-32600, -32602), (
+                        f"Expected JSON-RPC error -32600 or -32602 for null params but got: {resp!r}"
+                    )
+
                 return test_invalid_request
 
             invalid_req_func = make_invalid_request_test(base_url)
@@ -1684,18 +1781,24 @@ def pytest_collection_modifyitems(session, config, items):
                 config, "_mcp_tools_server_returns_method_not_found", False
             )
             if server_returns_method_not_found:
+
                 def make_method_not_found_test(url, endpoint="/mcp"):
                     def test_method_not_found():
                         """Send unknown JSON-RPC method; expect -32601 Method Not Found."""
-                        resp = _post_raw_request(url, {
-                            "jsonrpc": "2.0",
-                            "id": 99,
-                            "method": "tools/execute",
-                        }, endpoint)
+                        resp = _post_raw_request(
+                            url,
+                            {
+                                "jsonrpc": "2.0",
+                                "id": 99,
+                                "method": "tools/execute",
+                            },
+                            endpoint,
+                        )
                         error = resp.get("error", {})
                         assert error.get("code") == -32601, (
                             f"Expected JSON-RPC error -32601 for unknown method but got: {resp!r}"
                         )
+
                     return test_method_not_found
 
                 method_nf_func = make_method_not_found_test(base_url)
@@ -1718,7 +1821,8 @@ def pytest_collection_finish(session):
     if hasattr(config, "_mcp_tools_endpoints"):
         # Count MCP tools tests
         mcp_test_count = sum(
-            1 for item in session.items
+            1
+            for item in session.items
             if item.get_closest_marker("mcp_tools") is not None
         )
 

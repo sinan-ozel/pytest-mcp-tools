@@ -420,6 +420,25 @@ services:
       retries: 20
       start_period: 5s
 
+  incorrect-error-server:
+    build:
+      context: servers/incorrect_error_server
+      dockerfile: Dockerfile
+    image: incorrect-error-server:latest
+    networks:
+      - testnet
+    deploy:
+      resources:
+        limits:
+          cpus: '0.1'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 20
+      start_period: 5s
+
   test:
     build:
       context: ..
@@ -471,6 +490,8 @@ services:
       strict-validation-server:
         condition: service_healthy
       no-validation-server:
+        condition: service_healthy
+      incorrect-error-server:
         condition: service_healthy
     networks:
       - testnet

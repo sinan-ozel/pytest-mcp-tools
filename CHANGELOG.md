@@ -6,6 +6,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.2.1] - 2026-04-24
+
+### Fixed
+- **`test_invalid_request` now accepts `-32602` in addition to `-32600`** —
+  some spec-compliant servers return `-32602` (Invalid Params) instead of
+  `-32600` (Invalid Request) when `tools/call` is sent with `params: null`.
+  Both codes are now treated as a passing response.
+
+### Tests added
+- `test_invalid_request_test_passes_on_incorrect_error_server` — verifies
+  that `test_invalid_request` passes against a server that returns `-32602`
+  for null params.
+- Added `incorrect_error_server` mock for the above scenario.
+
+### Docs updated
+- `docs/index.md` and CHANGELOG updated to reflect both accepted error codes.
+
+---
+
 ## [0.2.0] - 2026-03-10
 
 ### Added
@@ -22,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Protocol-error tests (`mcp_tools_protocol`)** — always generated when an
   `/mcp` endpoint is found:
   - `test_invalid_request` — sends `tools/call` with `params: null` and asserts
-    the server returns `-32600` (Invalid Request).
+    the server returns `-32600` or `-32602` (Invalid Request/Invalid Params).
   - `test_method_not_found` — sends the unknown method `tools/execute` and
     asserts `-32601` (Method Not Found); only generated for servers that
     are probed to return `-32601` for unknown methods.
@@ -291,6 +310,8 @@ to test and fix the automated document publishing pipeline.
 - Tool listing and description validation
 - Basic test generation
 
+[0.2.1]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/sinan-ozel/pytest-mcp-tools/compare/v0.1.6...v0.1.7
