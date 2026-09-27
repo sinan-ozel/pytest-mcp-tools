@@ -4,8 +4,12 @@ Exposes tools covering all field types the plugin generates schema-driven cases
 for: plain string, number (unconstrained), integer (with min/max), boolean,
 enum, and string fields with format keywords (email, uri, date).
 All tools accept any valid input and return structuredContent that matches
-their outputSchema so every generated test is expected to pass.
+their outputSchema so every generated test is expected to pass.  Invalid input
+is rejected with a tool execution error (isError: true), per the MCP spec, so
+the plugin's invalid-input tests pass too.
 """
+
+import re
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
@@ -192,7 +196,59 @@ TOOLS = [
 ]
 
 
+_FORMATS = {
+    "email": re.compile(r"^[^@]+@[^@]+\.[^@]+$"),
+    "uri": re.compile(r"^[a-zA-Z][a-zA-Z0-9+\-.]*://"),
+    "date": re.compile(r"^\d{4}-\d{2}-\d{2}$"),
+}
+_TYPES = {
+    "string": str,
+    "number": (int, float),
+    "integer": int,
+    "boolean": bool,
+}
+
+
+def _validation_error(name, arguments):
+    """Return why ``arguments`` violate the tool's inputSchema, or None.
+
+    Checks what the schemas here use: required fields, type, enum, format,
+    minimum and maximum.
+    """
+    tool = next((t for t in TOOLS if t["name"] == name), None)
+    if tool is None:
+        return None
+    schema = tool["inputSchema"]
+    for field in schema.get("required", []):
+        if field not in arguments:
+            return f"missing required field '{field}'"
+    for field, value in arguments.items():
+        spec = schema["properties"].get(field)
+        if spec is None:
+            continue
+        expected = _TYPES.get(spec.get("type"))
+        wrong_bool = isinstance(value, bool) and spec.get("type") != "boolean"
+        if expected and (not isinstance(value, expected) or wrong_bool):
+            return f"'{field}' must be of type {spec['type']}"
+        if "enum" in spec and value not in spec["enum"]:
+            return f"'{field}' must be one of {spec['enum']}"
+        pattern = _FORMATS.get(spec.get("format"))
+        if pattern and not pattern.match(value):
+            return f"'{field}' must be a valid {spec['format']}"
+        if "minimum" in spec and value < spec["minimum"]:
+            return f"'{field}' must be >= {spec['minimum']}"
+        if "maximum" in spec and value > spec["maximum"]:
+            return f"'{field}' must be <= {spec['maximum']}"
+    return None
+
+
 def _call_tool(name, arguments):
+    error = _validation_error(name, arguments)
+    if error:
+        return {
+            "content": [{"type": "text", "text": f"Invalid arguments: {error}"}],
+            "isError": True,
+        }
     if name == "echo_string":
         return {
             "content": [{"type": "text", "text": arguments.get("text", "")}],

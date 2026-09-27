@@ -103,7 +103,20 @@ def _call_tool(name, arguments):
             "structuredContent": {"greeting": greeting},
         }
     if name == "add_numbers":
-        result = arguments.get("a", 0) + arguments.get("b", 0)
+        # Reject invalid input with a tool execution error, per the MCP spec.
+        for field in ("a", "b"):
+            value = arguments.get(field)
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                return {
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": f"Invalid arguments: '{field}' must be a number",
+                        }
+                    ],
+                    "isError": True,
+                }
+        result = arguments["a"] + arguments["b"]
         return {
             "content": [{"type": "text", "text": str(result)}],
             "structuredContent": {"result": result},

@@ -2101,7 +2101,7 @@ def test_schema_driven_format_tests_generated_and_pass():
 
 
 # ---------------------------------------------------------------------------
-# Missing required field tests (-32602)
+# Missing required field tests (tool execution error, isError: true)
 # ---------------------------------------------------------------------------
 
 
@@ -2113,7 +2113,8 @@ def test_missing_required_field_tests_generated_and_pass():
     username (string), age (integer), email (string format email), and role
     (string enum).  The plugin must generate one test per required field
     (test_manage_user_missing_{field}) that calls the tool without that field
-    and expects a -32602 JSON-RPC error code from the server.
+    and expects a tool execution error (isError: true, with a text message),
+    per the MCP spec 2025-11-25.
 
     All four generated tests must appear and pass when the server correctly
     validates its inputs.
@@ -2162,7 +2163,7 @@ def test_missing_required_field_tests_fail_on_nonvalidating_server():
     """Test that missing-field tests fail when the server does not validate required fields.
 
     The no_validation_server exposes the same manage_user schema but accepts any
-    arguments without validation.  The plugin's missing-field tests expect -32602
+    arguments without validation.  The plugin's missing-field tests expect a tool error
     from the server; since the server returns success instead, those tests must
     fail and pytest must exit with a non-zero code.
     """
@@ -2210,7 +2211,7 @@ def test_missing_required_field_tests_fail_on_nonvalidating_server():
 
 
 # ---------------------------------------------------------------------------
-# Wrong type tests (-32602)
+# Wrong type tests (tool execution error, isError: true)
 # ---------------------------------------------------------------------------
 
 
@@ -2225,7 +2226,7 @@ def test_wrong_type_tests_generated_and_pass():
       email (email format)→ a malformed email such as 'claude@ai'
       role (enum)         → a valid string not in the enum
 
-    All four tests must appear and pass when the server correctly returns -32602
+    All four tests must appear and pass when the server correctly returns a tool error
     for each invalid value.
     """
     print("\n🔍 Testing wrong-type test generation...", flush=True)
@@ -2272,7 +2273,7 @@ def test_wrong_type_tests_fail_on_nonvalidating_server():
     """Test that wrong-type tests fail when the server accepts values of the wrong type.
 
     The no_validation_server accepts any arguments and returns success.  The
-    plugin's wrong-type tests expect -32602; since the server returns success,
+    plugin's wrong-type tests expect a tool error; since the server returns success,
     those tests must fail and pytest must exit with a non-zero code.
     """
     print(
@@ -2314,6 +2315,218 @@ def test_wrong_type_tests_fail_on_nonvalidating_server():
     print(
         "✅ test_wrong_type_tests_fail_on_nonvalidating_server: "
         "wrong-type tests correctly failed",
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Legacy -32602 servers (--mcp-tools-legacy-invalid-params)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_input_tests_fail_on_legacy_server_by_default():
+    """Test that invalid-input tests fail by default on a server that returns -32602.
+
+    The legacy_validation_server rejects invalid manage_user input with JSON-RPC
+    error -32602.  Per the MCP spec 2025-11-25 that is a protocol error, not the
+    required tool execution error (isError: true), so the missing-field and
+    wrong-type tests must fail, and the failure must point to
+    --mcp-tools-legacy-invalid-params.
+    """
+    print(
+        "\n🔍 Testing invalid-input tests fail on legacy -32602 server...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://legacy-validation-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    for field in ("username", "age", "email", "role"):
+        for kind in ("missing", "wrong_type"):
+            assert f"test_manage_user_{kind}_{field} FAILED" in output, (
+                f"Expected test_manage_user_{kind}_{field} to fail, "
+                f"got:\n{output}\n\nSTDERR:\n{stderr}"
+            )
+
+    assert "--mcp-tools-legacy-invalid-params" in output, (
+        f"Expected the failure to mention --mcp-tools-legacy-invalid-params, "
+        f"got:\n{output}"
+    )
+
+    assert result.returncode != 0, (
+        f"Expected pytest to fail on a -32602 server by default, "
+        f"got exit code: {result.returncode}"
+    )
+
+    print(
+        "✅ test_invalid_input_tests_fail_on_legacy_server_by_default: "
+        "invalid-input tests correctly failed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_input_tests_pass_on_legacy_server_with_flag():
+    """Test that --mcp-tools-legacy-invalid-params accepts -32602 for invalid input.
+
+    With the flag, the missing-field and wrong-type tests expect JSON-RPC error
+    -32602 (the pre-2025-11-25 reading), so every test must pass against the
+    legacy_validation_server.
+    """
+    print("\n🔍 Testing legacy flag on legacy -32602 server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://legacy-validation-server:8000",
+            "--mcp-tools-legacy-invalid-params",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    for field in ("username", "age", "email", "role"):
+        for kind in ("missing", "wrong_type"):
+            assert f"test_manage_user_{kind}_{field} PASSED" in output, (
+                f"Expected test_manage_user_{kind}_{field} to pass, "
+                f"got:\n{output}\n\nSTDERR:\n{stderr}"
+            )
+
+    assert result.returncode == 0, (
+        f"Expected all tests to pass with --mcp-tools-legacy-invalid-params, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_invalid_input_tests_pass_on_legacy_server_with_flag: "
+        "all invalid-input tests passed",
+        flush=True,
+    )
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_legacy_flag_fails_on_spec_compliant_server():
+    """Test that the legacy flag really expects -32602.
+
+    The strict_validation_server returns tool execution errors (isError: true);
+    with --mcp-tools-legacy-invalid-params the invalid-input tests expect -32602
+    and must therefore fail.
+    """
+    print("\n🔍 Testing legacy flag on spec-compliant server...", flush=True)
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        [
+            "pytest",
+            "--mcp-tools=http://strict-validation-server:8000",
+            "--mcp-tools-legacy-invalid-params",
+            "-v",
+            "-s",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    assert "test_manage_user_wrong_type_age FAILED" in output, (
+        f"Expected test_manage_user_wrong_type_age to fail with the legacy flag, "
+        f"got:\n{output}\n\nSTDERR:\n{stderr}"
+    )
+    assert result.returncode != 0, (
+        f"Expected pytest to fail, got exit code: {result.returncode}"
+    )
+
+    print(
+        "✅ test_legacy_flag_fails_on_spec_compliant_server: "
+        "invalid-input tests correctly failed",
+        flush=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Invalid-input tests for tools with an outputSchema
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.depends(on=["test_mcp_tools_flag_is_recognized"])
+def test_invalid_input_tests_generated_for_tools_with_output_schema():
+    """Test that tools declaring an outputSchema also get invalid-input tests.
+
+    Before 0.3.0 tools with an outputSchema were skipped, so a server could
+    silently accept invalid input on them.  The schema_driven_server's tools
+    all declare outputSchema and validate their input (isError: true), so the
+    tests must be generated and pass.
+    """
+    print(
+        "\n🔍 Testing invalid-input tests for tools with outputSchema...",
+        flush=True,
+    )
+    time.sleep(0.5)
+
+    result = subprocess.run(
+        ["pytest", "--mcp-tools=http://schema-driven-server:8000", "-v", "-s"],
+        capture_output=True,
+        text=True,
+        cwd="/app",
+    )
+
+    output = result.stdout
+    stderr = result.stderr
+
+    print(f"STDOUT:\n{output}\n")
+    print(f"STDERR:\n{stderr}\n")
+
+    for test_name in (
+        "test_compute_missing_value",
+        "test_compute_wrong_type_value",
+        "test_bounded_count_wrong_type_n",
+        "test_toggle_wrong_type_enabled",
+        "test_pick_wrong_type_choice",
+        "test_check_contact_missing_email",
+        "test_check_contact_wrong_type_email",
+        "test_check_contact_wrong_type_website",
+    ):
+        assert f"{test_name} PASSED" in output, (
+            f"Expected {test_name} to be generated and pass, "
+            f"got:\n{output}\n\nSTDERR:\n{stderr}"
+        )
+
+    assert result.returncode == 0, (
+        f"Expected all tests to pass on schema-driven server, "
+        f"got exit code: {result.returncode}\n{output}"
+    )
+
+    print(
+        "✅ test_invalid_input_tests_generated_for_tools_with_output_schema: "
+        "tests generated and passed",
         flush=True,
     )
 
@@ -2380,6 +2593,10 @@ def test_invalid_request_test_passes_on_incorrect_error_server():
 
     The incorrect_error_server returns -32602 (Invalid Params) instead of -32600
     (Invalid Request) for params: null. The test must accept both error codes.
+
+    The server also rejects invalid tool arguments with -32602 (the legacy
+    reading), so the run uses --mcp-tools-legacy-invalid-params to keep the
+    invalid-input tests from failing the whole run.
     """
     print(
         "\n🔍 Testing invalid-request test passes on server returning -32602...",
@@ -2391,6 +2608,7 @@ def test_invalid_request_test_passes_on_incorrect_error_server():
         [
             "pytest",
             "--mcp-tools=http://incorrect-error-server:8000",
+            "--mcp-tools-legacy-invalid-params",
             "-v",
             "-s",
         ],

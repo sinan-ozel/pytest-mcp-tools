@@ -1,10 +1,11 @@
-"""MCP test server that strictly validates tool inputs, per the MCP spec.
+"""MCP test server that validates tool inputs the pre-2025-11-25 way.
 
-Missing required fields and wrong-typed values are tool execution errors: a
-normal result with isError: true and a text message (MCP spec 2025-11-25,
-Tools → Error Handling).  Protocol errors stay JSON-RPC errors: -32600 for
-invalid requests and -32601 for unknown methods.  See legacy_validation_server
-for the -32602 variant.
+Rejects missing required fields and wrong-typed values with JSON-RPC error
+-32602 (Invalid Params) instead of a tool execution error (isError: true).
+Used to test that the plugin's invalid-input tests fail on this server by
+default and pass with --mcp-tools-legacy-invalid-params.  Otherwise identical
+to strict_validation_server (-32600 for invalid requests, -32601 for unknown
+methods).
 
 Tool: manage_user
   username  string (no format)         required
@@ -57,12 +58,7 @@ def _invalid_params(req_id, message):
         {
             "jsonrpc": "2.0",
             "id": req_id,
-            "result": {
-                "content": [
-                    {"type": "text", "text": f"Invalid arguments: {message}"}
-                ],
-                "isError": True,
-            },
+            "error": {"code": -32602, "message": f"Invalid params: {message}"},
         }
     )
 
@@ -111,7 +107,7 @@ async def mcp_endpoint(request):
                         "protocolVersion": "2025-03-26",
                         "capabilities": {"tools": {}},
                         "serverInfo": {
-                            "name": "strict-validation-server",
+                            "name": "legacy-validation-server",
                             "version": "0.1.0",
                         },
                     },

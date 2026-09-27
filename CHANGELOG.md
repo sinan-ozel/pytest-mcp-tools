@@ -6,6 +6,46 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.3.0] - 2026-09-27
+
+### Changed
+- **Invalid-input tests follow the MCP spec (2025-11-25)** —
+  `test_{tool}_missing_{field}` and `test_{tool}_wrong_type_{field}` now
+  expect a *tool execution error*: a result with `isError: true` and a
+  non-empty text message, as the spec's Tools → Error Handling section
+  requires for input validation errors. Previously they expected JSON-RPC
+  error `-32602`, which the spec reserves for protocol errors; spec-compliant
+  servers such as FastMCP 3 failed them. When a server answers `-32602`, the
+  failure message points to the new flag below.
+- **Tools with an `outputSchema` now get invalid-input tests too.** They were
+  skipped before, so a server could silently accept invalid input on any tool
+  that declared an `outputSchema`.
+
+### Added
+- `--mcp-tools-legacy-invalid-params` — restores the previous expectation
+  (JSON-RPC `-32602`) for servers built before the 2025-11-25 spec.
+
+### Unchanged
+- `test_invalid_request` (`params: null` → `-32600` or `-32602`) and
+  `test_method_not_found` (`-32601`): those are malformed requests, which the
+  spec still treats as protocol errors.
+
+### Tests added
+- `legacy_validation_server` mock (rejects invalid input with `-32602`), used by
+  `test_invalid_input_tests_fail_on_legacy_server_by_default` and
+  `test_invalid_input_tests_pass_on_legacy_server_with_flag`.
+- `test_legacy_flag_fails_on_spec_compliant_server`.
+- `test_invalid_input_tests_generated_for_tools_with_output_schema`.
+- `strict_validation_server`, `schema_driven_server` and `examples_server`
+  now reject invalid input with `isError: true`, as the spec requires;
+  `test_invalid_request_test_passes_on_incorrect_error_server` runs with the
+  legacy flag, since that server uses `-32602`.
+
+### Docs updated
+- `docs/index.md`: test table and the Invalid-Input Error Tests section.
+
+---
+
 ## [0.2.1] - 2026-04-24
 
 ### Fixed
