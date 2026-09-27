@@ -19,7 +19,8 @@ _SESSION_CACHE: dict = {}
 
 
 def _parse_mcp_response(response):
-    """Parse an MCP HTTP response, handling both JSON and SSE (text/event-stream).
+    """Parse an MCP HTTP response, handling both JSON and SSE (text/event-
+    stream).
 
     The MCP Streamable HTTP transport allows servers to respond with either
     ``Content-Type: application/json`` or ``Content-Type: text/event-stream``.
@@ -39,7 +40,7 @@ def _parse_mcp_response(response):
         for line in response.text.splitlines():
             line = line.strip()
             if line.startswith("data:"):
-                data = line[len("data:"):].strip()
+                data = line[len("data:") :].strip()
                 if data and data != "[DONE]":
                     return json.loads(data)
         raise ValueError("No data found in SSE response")
@@ -47,7 +48,8 @@ def _parse_mcp_response(response):
 
 
 def _establish_session(base_url, endpoint="/mcp"):
-    """Perform the MCP initialization handshake and return extra request headers.
+    """Perform the MCP initialization handshake and return extra request
+    headers.
 
     Sends an ``initialize`` JSON-RPC request as required by the MCP Streamable
     HTTP transport spec.  If the server returns an ``Mcp-Session-Id`` response
@@ -98,7 +100,8 @@ def _establish_session(base_url, endpoint="/mcp"):
 
 
 def _post_tools_list(base_url, endpoint="/mcp"):
-    """Send a ``tools/list`` JSON-RPC request, initialising the session if needed.
+    """Send a ``tools/list`` JSON-RPC request, initialising the session if
+    needed.
 
     Performs the MCP initialization handshake via :func:`_establish_session`
     before sending the actual ``tools/list`` request so that servers
@@ -205,7 +208,8 @@ _JSON_SCHEMA_TYPE_TO_PYTHON = {
 
 
 def collect_output_schema_type_mismatches(content, properties, path=""):
-    """Recursively collect fields where runtime value type mismatches outputSchema.
+    """Recursively collect fields where runtime value type mismatches
+    outputSchema.
 
     Args:
         content: The ``structuredContent`` dict from a ``tools/call`` response.
@@ -400,9 +404,9 @@ def _assert_invalid_input_rejected(resp, description, legacy=False):
     """
     if legacy:
         code = resp.get("error", {}).get("code")
-        assert code == -32602, (
-            f"{description}: expected JSON-RPC error -32602 but got: {resp!r}"
-        )
+        assert (
+            code == -32602
+        ), f"{description}: expected JSON-RPC error -32602 but got: {resp!r}"
         return
 
     hint = ""
@@ -429,7 +433,8 @@ def _assert_invalid_input_rejected(resp, description, legacy=False):
 
 
 def _invalid_value_for_field(field_schema):
-    """Return a value that is invalid for the given JSON Schema field descriptor.
+    """Return a value that is invalid for the given JSON Schema field
+    descriptor.
 
     Chooses a value whose type or format violates the schema so that a
     validating server must reject the call.  For enum fields the value has the
@@ -653,12 +658,12 @@ def validate_tools_have_titles(tools):
         if annotations is None:
             continue
         tool_name = tool.get("name", "<unknown>")
-        assert "title" in annotations, (
-            f"Tool '{tool_name}' is missing title in annotations"
-        )
-        assert annotations["title"], (
-            f"Tool '{tool_name}' has empty title in annotations"
-        )
+        assert (
+            "title" in annotations
+        ), f"Tool '{tool_name}' is missing title in annotations"
+        assert annotations[
+            "title"
+        ], f"Tool '{tool_name}' has empty title in annotations"
 
 
 _VALID_JSON_SCHEMA_TYPES = frozenset(
@@ -667,7 +672,8 @@ _VALID_JSON_SCHEMA_TYPES = frozenset(
 
 
 def collect_input_schema_missing_descriptions(properties, path=""):
-    """Recursively collect paths of fields missing a description in JSON Schema properties.
+    """Recursively collect paths of fields missing a description in JSON Schema
+    properties.
 
     Args:
         properties: The ``properties`` dict from a JSON Schema object
@@ -725,8 +731,8 @@ def collect_input_schema_invalid_types(properties, path=""):
 
 
 def validate_tool_annotations_are_consistent(tools):
-    """Validate that readOnlyHint is not true when destructiveHint or idempotentHint
-    is true.
+    """Validate that readOnlyHint is not true when destructiveHint or
+    idempotentHint is true.
 
     Args:
         tools: List of tool objects (dicts)
@@ -1104,7 +1110,8 @@ def pytest_collection_modifyitems(session, config, items):
 
             def make_list_tools_error_test(url):
                 def test_list_tools_from_empty_server_raises_error():
-                    """Test that list_tools raises ValueError when server has no tools."""
+                    """Test that list_tools raises ValueError when server has
+                    no tools."""
                     with pytest.raises(ValueError):
                         list_tools(url, "/mcp")
 
@@ -1153,7 +1160,8 @@ def pytest_collection_modifyitems(session, config, items):
         # This tests that the list_tools function works correctly
         def make_list_tools_test(url, endpoint="/mcp"):
             def test_list_tools_from_basic_server():
-                """Test that list_tools function can retrieve tools from the MCP server."""
+                """Test that list_tools function can retrieve tools from the
+                MCP server."""
                 max_retries = 10
                 tools = None
                 for retry in range(max_retries):
@@ -1194,12 +1202,12 @@ def pytest_collection_modifyitems(session, config, items):
                 # Check each tool has a description
                 for tool in tools:
                     tool_name = tool.get("name", "<unknown>")
-                    assert "description" in tool, (
-                        f"Tool '{tool_name}' is missing description field"
-                    )
-                    assert tool["description"], (
-                        f"Tool '{tool_name}' has empty description"
-                    )
+                    assert (
+                        "description" in tool
+                    ), f"Tool '{tool_name}' is missing description field"
+                    assert tool[
+                        "description"
+                    ], f"Tool '{tool_name}' has empty description"
 
             return test_tools_have_descriptions
 
@@ -1266,7 +1274,8 @@ def pytest_collection_modifyitems(session, config, items):
 
             def make_tools_have_titles_test(url, endpoint="/mcp"):
                 def test_tools_have_titles():
-                    """Test that all tools with annotations have a title field."""
+                    """Test that all tools with annotations have a title
+                    field."""
                     result = _post_tools_list(url, endpoint)
                     tools = result.get("result", {}).get("tools", [])
                     validate_tools_have_titles(tools)
@@ -1288,8 +1297,8 @@ def pytest_collection_modifyitems(session, config, items):
                 def test_tool_annotations_are_consistent():
                     """Test that annotation hints are not contradictory.
 
-                    Validates that readOnlyHint is not true when destructiveHint
-                    or idempotentHint is true.
+                    Validates that readOnlyHint is not true when
+                    destructiveHint or idempotentHint is true.
                     """
                     result = _post_tools_list(url, endpoint)
                     tools = result.get("result", {}).get("tools", [])
@@ -1340,9 +1349,9 @@ def pytest_collection_modifyitems(session, config, items):
                         ),
                         None,
                     )
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
-                    )
+                    assert (
+                        current_tool is not None
+                    ), f"Tool '{tname}' not found in tools list"
                     schema_props = current_tool.get("inputSchema", {}).get(
                         "properties", {}
                     )
@@ -1380,9 +1389,9 @@ def pytest_collection_modifyitems(session, config, items):
                         ),
                         None,
                     )
-                    assert current_tool is not None, (
-                        f"Tool '{tname}' not found in tools list"
-                    )
+                    assert (
+                        current_tool is not None
+                    ), f"Tool '{tname}' not found in tools list"
                     schema_props = current_tool.get("inputSchema", {}).get(
                         "properties", {}
                     )
@@ -1442,7 +1451,8 @@ def pytest_collection_modifyitems(session, config, items):
                     url, tname, args, out_props, schema, endpoint="/mcp"
                 ):
                     def test_func():
-                        """Call tool with example input; validate output against outputSchema."""
+                        """Call tool with example input; validate output
+                        against outputSchema."""
                         violations = collect_example_input_violations(
                             args, schema
                         )
@@ -1522,7 +1532,8 @@ def pytest_collection_modifyitems(session, config, items):
                     url, tname, args, out_props, endpoint="/mcp"
                 ):
                     def test_func():
-                        """Call tool with schema-generated input; validate output."""
+                        """Call tool with schema-generated input; validate
+                        output."""
                         result = _post_tools_call(url, tname, args, endpoint)
                         assert "error" not in result, (
                             f"Tool '{tname}' call returned JSON-RPC error: "
@@ -1695,7 +1706,8 @@ def pytest_collection_modifyitems(session, config, items):
                     url, tname, fname, bargs, endpoint="/mcp"
                 ):
                     def test_func():
-                        """Omit one required field; expect the call to be rejected."""
+                        """Omit one required field; expect the call to be
+                        rejected."""
                         args = {k: v for k, v in bargs.items() if k != fname}
                         resp = _post_raw_request(
                             url,
@@ -1766,7 +1778,8 @@ def pytest_collection_modifyitems(session, config, items):
                     url, tname, fname, bargs, inv_val, endpoint="/mcp"
                 ):
                     def test_func():
-                        """Send wrong-typed field value; expect the call to be rejected."""
+                        """Send wrong-typed field value; expect the call to be
+                        rejected."""
                         args = {**bargs, fname: inv_val}
                         resp = _post_raw_request(
                             url,
@@ -1806,7 +1819,8 @@ def pytest_collection_modifyitems(session, config, items):
 
             def make_invalid_request_test(url, endpoint="/mcp"):
                 def test_invalid_request():
-                    """Send tools/call with params=null; expect -32600 or -32602."""
+                    """Send tools/call with params=null; expect -32600 or
+                    -32602."""
                     resp = _post_raw_request(
                         url,
                         {
@@ -1819,9 +1833,10 @@ def pytest_collection_modifyitems(session, config, items):
                     )
                     error = resp.get("error", {})
                     error_code = error.get("code")
-                    assert error_code in (-32600, -32602), (
-                        f"Expected JSON-RPC error -32600 or -32602 for null params but got: {resp!r}"
-                    )
+                    assert error_code in (
+                        -32600,
+                        -32602,
+                    ), f"Expected JSON-RPC error -32600 or -32602 for null params but got: {resp!r}"
 
                 return test_invalid_request
 
@@ -1840,7 +1855,8 @@ def pytest_collection_modifyitems(session, config, items):
 
                 def make_method_not_found_test(url, endpoint="/mcp"):
                     def test_method_not_found():
-                        """Send unknown JSON-RPC method; expect -32601 Method Not Found."""
+                        """Send unknown JSON-RPC method; expect -32601 Method
+                        Not Found."""
                         resp = _post_raw_request(
                             url,
                             {
@@ -1851,9 +1867,9 @@ def pytest_collection_modifyitems(session, config, items):
                             endpoint,
                         )
                         error = resp.get("error", {})
-                        assert error.get("code") == -32601, (
-                            f"Expected JSON-RPC error -32601 for unknown method but got: {resp!r}"
-                        )
+                        assert (
+                            error.get("code") == -32601
+                        ), f"Expected JSON-RPC error -32601 for unknown method but got: {resp!r}"
 
                     return test_method_not_found
 
