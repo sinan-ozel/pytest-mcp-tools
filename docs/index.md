@@ -129,8 +129,8 @@ Automatically creates tests for every server with a `/mcp` endpoint:
 | `test_{tool}_schema_{n}` | — | Per tool: tool has `inputSchema.properties`; auto-generated from field types (marked `mcp_tools_schema`) |
 | `test_{tool}_has_examples` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `inputSchema.examples` |
 | `test_{tool}_has_output_schema` | — | Per tool: `--mcp-tools-strict` set; fails if tool has no `outputSchema` |
-| `test_{tool}_missing_{field}` | — | Per tool per required field: tool has no `outputSchema` and has ≥1 non-trivially-typed required field; expects `-32602` (marked `mcp_tools_invalid_input`) |
-| `test_{tool}_wrong_type_{field}` | — | Per tool per field: same selection criteria as above; sends wrong-typed value, expects `-32602` (marked `mcp_tools_invalid_input`) |
+| `test_{tool}_missing_{field}` | — | Per tool per required field: tool has ≥1 non-trivially-typed required field; expects a tool execution error (`isError: true`), or `-32602` with `--mcp-tools-legacy-invalid-params` (marked `mcp_tools_invalid_input`) |
+| `test_{tool}_wrong_type_{field}` | — | Per tool per field: same selection criteria and expectation as above; sends wrong-typed value (marked `mcp_tools_invalid_input`) |
 | `test_invalid_request` | ✅ | HTTP endpoint found; sends `tools/call` with `params: null`, expects `-32600` or `-32602` (marked `mcp_tools_protocol`) |
 | `test_method_not_found` | — | HTTP endpoint found and server returns `-32601` for unknown methods; sends `tools/execute`, expects `-32601` (marked `mcp_tools_protocol`) |
 
@@ -292,19 +292,45 @@ Example of a valid annotation:
 For tools that declare `inputSchema` with at least one required field that uses
 a non-trivial type constraint (integer, boolean, enum, or a string with a format
 keyword such as `email` or `uri`), the plugin generates two families of tests
-to verify that the server correctly rejects malformed requests with JSON-RPC
-error code `-32602` (Invalid Params).
+to verify that the server rejects invalid arguments.  This applies whether or
+not the tool declares an `outputSchema`: every server must validate its inputs.
 
-These tests are only generated for tools that do **not** declare an
-`outputSchema`.  Tools with an `outputSchema` are typically designed to accept
-any structurally valid call and test their outputs; invalid-input rejection
-belongs to the server layer rather than individual tool semantics.
+**What counts as rejecting.**  The
+[MCP specification (2025-11-25, Tools → Error Handling)](https://modelcontextprotocol.io/specification/2025-11-25/server/tools#error-handling)
+classifies input validation errors as *tool execution errors*: the server
+returns a normal result with `isError: true` and a message the model can use to
+correct the call.  JSON-RPC errors are for protocol problems (unknown tool,
+malformed request).  So by default a test passes when the response is a result
+with `isError: true` and at least one non-empty `text` content item:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [{"type": "text", "text": "Invalid arguments: 'age' must be an integer"}],
+    "isError": true
+  }
+}
+```
+
+FastMCP 3 does this by default for tools with typed parameters.
+
+**`--mcp-tools-legacy-invalid-params`** (default `false`) switches to the
+earlier reading: the tests pass only on a JSON-RPC error with code `-32602`
+(Invalid Params).  Use it for servers built before the 2025-11-25 spec; when a
+default-mode test fails on a `-32602` response, the failure message suggests
+this flag.
+
+```
+pytest --mcp-tools=http://localhost:8000 --mcp-tools-legacy-invalid-params
+```
 
 #### Missing-required-field tests (`mcp_tools_invalid_input`)
 
 One test per required field, named `test_{tool_name}_missing_{field}`.  Each
-test sends a `tools/call` request with that field omitted.  The test passes when
-the server returns a JSON-RPC error with code `-32602`.
+test sends a `tools/call` request with that field omitted, and passes when the
+server rejects it as described above.
 
 #### Wrong-type tests (`mcp_tools_invalid_input`)
 

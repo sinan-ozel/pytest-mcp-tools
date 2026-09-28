@@ -5,6 +5,7 @@ services:
       dockerfile: reformat/Dockerfile
     container_name: reformat-code
     volumes:
-      - ./pytest_mcp_tools/src:/workspace/src:rw
+      # Relative to this file: the repo's src/, so fixes are written back.
+      - ../src:/workspace/src:rw
     working_dir: /workspace
     network_mode: bridge
