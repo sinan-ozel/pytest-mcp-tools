@@ -9,13 +9,17 @@
 - [x] Check an example (optional with kwarg)
 - [x] Check examples against schema. Do they have all required fields?
 - [x] Check `outputSchema`.
-- [x] Add tool calls `--mcp-tools-only-read-only`/`--mcp-tools-production` will limit this to `readOnlyHint`==`true`
+- [x] Add tool calls: `--mcp-tools-production`/`--mcp-tools-read-only` limit these to `readOnlyHint`==`true`
 - [x] Add tool calls based on examples
 - [ ] Add tool calls based on descriptions
 - [x] Check `outputSchema` after tool calls.
-- [ ] Check that the `descriprion` is meaningful with LLM as Judge methodology.
+- [ ] Check that the `description` is meaningful with LLM as Judge methodology.
 - [x] Add --mcp-tools-strict. Do all have outputSchema and examples?
-- [ ] tool calls: correct combinations
-- [ ] tool calls: missing fields, expect -32602. Clearly repoting on all missing fields.
-- [ ] tool calls: fields with wrong type, expect -32602. Clearly repoting on all missing fields.
-- [ ] tool calls: more detailed examples using format for strings
+- [ ] tool calls: correct combinations (fields that are only valid together)
+- [x] tool calls: missing fields, expect a tool execution error (`isError: true`,
+      per MCP spec 2025-11-25); `-32602` under `--mcp-tools-legacy-invalid-params`
+      for pre-spec servers. Reports clearly on which field is missing.
+- [x] tool calls: fields with wrong type, same expectation as above. Reports
+      clearly on which field/type failed.
+- [x] tool calls: more detailed examples using format for strings (email, uri,
+      date, date-time, time — schema-driven tests)
